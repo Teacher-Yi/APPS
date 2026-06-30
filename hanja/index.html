@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>한자와의 만남</title>
+<style>
+  :root{--mint:#e8f6f3;--mint2:#62b6a8;--navy:#153b5b;--red:#d94b4b;--gray:#f5f7f8}
+  *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans KR',sans-serif;background:var(--mint);color:#18222b}
+  .wrap{max-width:520px;margin:0 auto;min-height:100vh;padding:22px 16px;display:flex;flex-direction:column;justify-content:center}
+  .card{background:white;border-radius:24px;padding:24px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+  h1{margin:0 0 8px;text-align:center;color:var(--navy);font-size:34px} .sub{text-align:center;color:#607080;margin-bottom:22px}
+  .units{display:grid;gap:10px}.btn{width:100%;border:0;border-radius:16px;padding:15px 16px;font-size:18px;font-weight:700;background:var(--mint2);color:white;cursor:pointer}.btn.secondary{background:#eef3f5;color:var(--navy)}.btn.red{background:var(--red)}
+  .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;color:#607080;font-weight:700}.bar{height:10px;background:#e7ecef;border-radius:20px;overflow:hidden;margin:12px 0 20px}.bar>div{height:100%;background:var(--mint2);width:0%}
+  .hanja{text-align:center;font-size:112px;line-height:1.1;margin:10px 0 20px;font-family:'Noto Serif CJK KR','Batang',serif;color:#111}
+  label{display:block;font-weight:800;margin:12px 0 6px;color:var(--navy)} input{width:100%;padding:15px;border:2px solid #dde5e8;border-radius:14px;font-size:20px;text-align:center} input:focus{outline:none;border-color:var(--mint2)}
+  .result{background:var(--gray);border-radius:16px;padding:14px;margin:16px 0;font-size:18px;line-height:1.7}.ok{color:#16845f;font-weight:900}.no{color:var(--red);font-weight:900}.hidden{display:none}.wrong-list{font-size:22px;line-height:1.8;text-align:center}.small{font-size:14px;color:#6d7a84;text-align:center;margin-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section id="home" class="card">
+    <h1>한자와의 만남</h1>
+    <div class="sub">천재 중학교 한문 뜻·음 암기</div>
+    <div id="unitButtons" class="units"></div>
+    <button class="btn secondary" style="margin-top:10px" onclick="startAll()">전체 범위 랜덤</button>
+    <div class="small">v1.1 · 모바일용 · 단원 선택 → 뜻/음 입력 → 오답 다시 풀기</div>
+  </section>
+
+  <section id="mode" class="card hidden">
+    <h1 id="modeTitle">풀이 방식</h1>
+    <button class="btn" onclick="startQuiz(false)">순서대로 풀기</button>
+    <button class="btn secondary" style="margin-top:10px" onclick="startQuiz(true)">랜덤으로 풀기</button>
+    <button class="btn secondary" style="margin-top:18px" onclick="showHome()">처음으로</button>
+  </section>
+
+  <section id="quiz" class="card hidden">
+    <div class="top"><span id="quizUnit"></span><span id="count"></span></div>
+    <div class="bar"><div id="barFill"></div></div>
+    <div id="hanja" class="hanja">學</div>
+    <label>뜻</label><input id="meaningInput" autocomplete="off" />
+    <label>음</label><input id="soundInput" autocomplete="off" />
+    <div id="feedback" class="result hidden"></div>
+    <button id="mainBtn" class="btn" onclick="checkAnswer()">정답 확인</button>
+  </section>
+
+  <section id="end" class="card hidden">
+    <h1>결과</h1>
+    <div id="score" class="sub"></div>
+    <div id="wrongBox" class="result hidden"><b>틀린 한자</b><div id="wrongList" class="wrong-list"></div></div>
+    <button id="retryBtn" class="btn red hidden" onclick="retryWrong()">틀린 문제 다시 풀기</button>
+    <button class="btn secondary" style="margin-top:10px" onclick="showHome()">처음으로</button>
+  </section>
+</div>
+<script>
+// 데이터 수정은 여기만 고치면 됩니다. {h:'한자', m:'뜻', s:'음'}
+const DATA = {
+  '01 한문은 처음이지': [
+    {h:'漢',m:'한나라',s:'한'},{h:'口',m:'입',s:'구'},{h:'字',m:'글자',s:'자'},{h:'馬',m:'말',s:'마'},{h:'文',m:'글월',s:'문'},{h:'肉',m:'고기',s:'육'},{h:'子',m:'아들',s:'자'},{h:'日',m:'날, 해',s:'일'},{h:'中',m:'가운데',s:'중'},{h:'國',m:'나라',s:'국'},{h:'韓',m:'나라이름',s:'한'},{h:'木',m:'나무, 근본',s:'목'},{h:'大',m:'크다',s:'대'},{h:'十',m:'열',s:'십'},{h:'目',m:'눈',s:'목'},{h:'回',m:'돌다',s:'회'},{h:'三',m:'석',s:'삼'},{h:'小',m:'작다',s:'소'},{h:'川',m:'내',s:'천'},{h:'近',m:'가깝다',s:'근'},{h:'人',m:'사람',s:'인'},{h:'犬',m:'개',s:'견'}
+  ],
+  '02 그려서 만든 한자': [
+    {h:'牛',m:'소',s:'우'},{h:'月',m:'달',s:'월'},{h:'火',m:'불',s:'화'},{h:'山',m:'산',s:'산'},{h:'上',m:'위',s:'상'},{h:'下',m:'아래',s:'하'},{h:'末',m:'끝',s:'말'},{h:'一',m:'하나',s:'일'},{h:'水',m:'물',s:'수'},{h:'四',m:'넉',s:'사'},{h:'九',m:'아홉',s:'구'},{h:'計',m:'세다',s:'계'},{h:'木',m:'나무',s:'목'},{h:'五',m:'다섯',s:'오'},{h:'電',m:'번개',s:'전'},{h:'大',m:'크다',s:'대'},{h:'金',m:'쇠',s:'금'},{h:'六',m:'여섯',s:'육'},{h:'少',m:'적다',s:'소'},{h:'男',m:'남자',s:'남'},{h:'土',m:'흙',s:'토'},{h:'七',m:'일곱',s:'칠'},{h:'年',m:'해, 나이',s:'년'},{h:'女',m:'여자',s:'녀'},{h:'二',m:'둘',s:'이'},{h:'八',m:'여덟',s:'팔'},{h:'時',m:'때',s:'시'}
+  ],
+  '03 합쳐서 만든 한자': [
+    {h:'好',m:'좋다',s:'호'},{h:'林',m:'수풀',s:'림'},{h:'休',m:'쉬다',s:'휴'},{h:'炎',m:'불꽃',s:'염'},{h:'門',m:'문',s:'문'},{h:'忘',m:'잊다',s:'망'},{h:'耳',m:'귀',s:'이'},{h:'才',m:'재주',s:'재'},{h:'聞',m:'듣다',s:'문'},{h:'貝',m:'조개',s:'패'},{h:'問',m:'묻다',s:'문'},{h:'心',m:'마음',s:'심'},{h:'財',m:'재물',s:'재'},{h:'亡',m:'망하다, 잃다',s:'망'},{h:'海',m:'바다',s:'해'},{h:'稀',m:'성기다',s:'희'},{h:'指',m:'가리키다',s:'지'},{h:'角',m:'뿔',s:'각'},{h:'鯨',m:'고래',s:'경'},{h:'刀',m:'칼',s:'도'},{h:'刑',m:'형벌',s:'형'},{h:'手',m:'손',s:'수'},{h:'仙',m:'신선',s:'선'},{h:'味',m:'맛',s:'미'},{h:'打',m:'치다',s:'타'},{h:'忙',m:'바쁘다',s:'망'},{h:'足',m:'발',s:'족'},{h:'雨',m:'비',s:'우'},{h:'江',m:'강',s:'강'},{h:'頭',m:'머리',s:'두'}
+  ],
+  '04 나를 찾아가는 단어': [
+    {h:'自',m:'스스로',s:'자'},{h:'姓',m:'성씨',s:'성'},{h:'名',m:'이름',s:'명'},{h:'住',m:'살다',s:'주'},{h:'所',m:'바, 곳',s:'소'},{h:'選',m:'가리다',s:'선'},{h:'興',m:'일어나다',s:'흥'},{h:'關',m:'관계하다',s:'관'},{h:'進',m:'나아가다',s:'진'},{h:'路',m:'길',s:'로'},{h:'北',m:'북녘',s:'북'},{h:'出',m:'나가다',s:'출'},{h:'家',m:'집',s:'가'},{h:'母',m:'어머니',s:'모'},{h:'寸',m:'마디',s:'촌'},{h:'西',m:'서쪽',s:'서'},{h:'入',m:'들어가다',s:'입'},{h:'族',m:'겨레',s:'족'},{h:'兄',m:'형',s:'형'},{h:'數',m:'세다',s:'수'},{h:'南',m:'남녘',s:'남'},{h:'望',m:'바라다',s:'망'},{h:'親',m:'친하다',s:'친'},{h:'弟',m:'아우',s:'제'},{h:'東',m:'동쪽',s:'동'},{h:'信',m:'믿다',s:'신'},{h:'祖',m:'할아버지',s:'조'},{h:'姉',m:'손위 누이',s:'자'},{h:'退',m:'물러나다',s:'퇴'},{h:'願',m:'원하다',s:'원'},{h:'父',m:'아버지',s:'부'},{h:'妹',m:'손아래 누이',s:'매'}
+  ],
+  '05 즐거운 우리 학교': [
+    {h:'學',m:'배우다',s:'학'},{h:'校',m:'학교',s:'교'},{h:'科',m:'과목',s:'과'},{h:'登',m:'오르다',s:'등'},{h:'授',m:'주다',s:'수'},{h:'業',m:'일',s:'업'},{h:'多',m:'많다',s:'다'},{h:'情',m:'뜻, 정',s:'정'},{h:'賣',m:'팔다',s:'매'},{h:'店',m:'가게',s:'점'},{h:'給',m:'주다',s:'급'},{h:'食',m:'먹다',s:'식'},{h:'放',m:'놓다',s:'방'},{h:'開',m:'열다',s:'개'},{h:'受',m:'받다',s:'수'},{h:'過',m:'지나다',s:'과'},{h:'敬',m:'공경',s:'경'},{h:'商',m:'장사',s:'상'},{h:'敎',m:'가르치다',s:'교'},{h:'去',m:'가다',s:'거'},{h:'卷',m:'책',s:'권'},{h:'閉',m:'닫다',s:'폐'},{h:'育',m:'기르다',s:'육'},{h:'防',m:'막다',s:'방'},{h:'買',m:'사다',s:'매'},{h:'訓',m:'가르치다',s:'훈'},{h:'經',m:'글, 지나다',s:'경'}
+  ],
+  '07 생활 속 성어': [
+    {h:'長',m:'길다',s:'장'},{h:'場',m:'마당',s:'장'},{h:'將',m:'장수',s:'장'},{h:'忘',m:'잊다',s:'망'},{h:'助',m:'돕다',s:'조'},{h:'益',m:'익하다, 더욱',s:'익'},{h:'鐵',m:'쇠',s:'철'},{h:'面',m:'얼굴',s:'면'},{h:'千',m:'일천',s:'천'},{h:'皮',m:'가죽',s:'피'},{h:'假',m:'거짓',s:'가'},{h:'高',m:'높다',s:'고'},{h:'聲',m:'소리',s:'성'},{h:'行',m:'다니다',s:'행'},{h:'對',m:'대하다',s:'대'},{h:'低',m:'낮다',s:'저'},{h:'藥',m:'약',s:'약'},{h:'士',m:'선비',s:'사'},{h:'顔',m:'얼굴',s:'안'},{h:'救',m:'구원하다',s:'구'},{h:'判',m:'판단하다',s:'판'},{h:'醫',m:'의원',s:'의'},{h:'畫',m:'그림',s:'화'},{h:'扶',m:'붇다',s:'부'},{h:'事',m:'일',s:'사'},{h:'師',m:'스승',s:'사'},{h:'短',m:'짧다',s:'단'},{h:'協',m:'합동하다',s:'협'},{h:'飛',m:'날다',s:'비'}
+  ]
+};
+let selectedUnit='', original=[], questions=[], idx=0, correct=0, wrong=[], checked=false;
+const $=id=>document.getElementById(id);
+function normalize(x){return (x||'').replace(/\s+/g,'').replace(/[,.，、]/g,',').trim();}
+function show(id){['home','mode','quiz','end'].forEach(x=>$(x).classList.add('hidden'));$(id).classList.remove('hidden');}
+function showHome(){show('home')}
+function shuffle(a){return [...a].sort(()=>Math.random()-0.5)}
+function init(){const box=$('unitButtons'); Object.keys(DATA).forEach(u=>{const b=document.createElement('button');b.className='btn secondary';b.textContent=u;b.onclick=()=>selectUnit(u);box.appendChild(b);});}
+function selectUnit(u){selectedUnit=u;original=DATA[u];$('modeTitle').textContent=u;show('mode')}
+function startAll(){selectedUnit='전체 범위'; original=Object.values(DATA).flat(); questions=shuffle(original); begin();}
+function startQuiz(random){questions=random?shuffle(original):[...original]; begin();}
+function begin(){idx=0;correct=0;wrong=[];checked=false;show('quiz');render();}
+function render(){const q=questions[idx];$('quizUnit').textContent=selectedUnit;$('count').textContent=`${idx+1} / ${questions.length}`;$('barFill').style.width=`${(idx/questions.length)*100}%`;$('hanja').textContent=q.h;$('meaningInput').value='';$('soundInput').value='';$('feedback').classList.add('hidden');$('mainBtn').textContent='정답 확인';checked=false;$('meaningInput').focus();}
+function checkAnswer(){if(checked){next();return;} const q=questions[idx]; const mOk=normalize($('meaningInput').value)===normalize(q.m); const sOk=normalize($('soundInput').value)===normalize(q.s); if(mOk&&sOk) correct++; else wrong.push(q); $('feedback').innerHTML=`<div>뜻 ${mOk?'<span class="ok">⭕</span>':'<span class="no">❌</span>'} &nbsp; 음 ${sOk?'<span class="ok">⭕</span>':'<span class="no">❌</span>'}</div><hr><b>정답</b><br>뜻: ${q.m}<br>음: ${q.s}`; $('feedback').classList.remove('hidden'); $('mainBtn').textContent='다음 문제'; checked=true;}
+function next(){idx++; if(idx>=questions.length) end(); else render();}
+function end(){show('end'); $('barFill').style.width='100%'; const score=Math.round((correct/questions.length)*100); $('score').innerHTML=`${questions.length}문제 중 ${correct}문제 정답<br><b>${score}점</b>`; if(wrong.length){$('wrongBox').classList.remove('hidden');$('retryBtn').classList.remove('hidden');$('wrongList').textContent=wrong.map(x=>x.h).join('  ');} else {$('wrongBox').classList.add('hidden');$('retryBtn').classList.add('hidden');}}
+function retryWrong(){selectedUnit='틀린 문제 다시 풀기'; questions=[...wrong]; idx=0;correct=0;wrong=[];show('quiz');render();}
+init();
+</script>
+</body>
+</html>

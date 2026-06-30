@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>랜덤뽑기</title>
+  <style>
+    :root{
+      --bg:#f6f8fb;
+      --card:#ffffff;
+      --text:#172033;
+      --muted:#6b7280;
+      --primary:#2563eb;
+      --primary-dark:#1d4ed8;
+      --line:#e5e7eb;
+      --danger:#ef4444;
+      --ok:#10b981;
+      --shadow:0 10px 30px rgba(15,23,42,.08);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      -webkit-tap-highlight-color:transparent;
+    }
+    .app{
+      width:min(720px,100%);
+      margin:0 auto;
+      padding:18px 14px 36px;
+    }
+    header{
+      text-align:center;
+      padding:18px 8px 12px;
+    }
+    h1{
+      margin:0;
+      font-size:34px;
+      letter-spacing:-.04em;
+    }
+    .subtitle{margin-top:6px;color:var(--muted);font-size:15px}
+    .tabs{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      margin:12px 0 14px;
+    }
+    .tab{
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--text);
+      border-radius:16px;
+      padding:14px 8px;
+      font-size:17px;
+      font-weight:800;
+      cursor:pointer;
+    }
+    .tab.active{
+      background:var(--primary);
+      color:#fff;
+      border-color:var(--primary);
+    }
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:22px;
+      box-shadow:var(--shadow);
+      padding:18px;
+      margin-bottom:14px;
+    }
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    label{
+      display:block;
+      font-size:14px;
+      font-weight:800;
+      color:#374151;
+      margin:0 0 6px 2px;
+    }
+    input, textarea{
+      width:100%;
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:14px 13px;
+      font-size:18px;
+      outline:none;
+      background:#fff;
+    }
+    textarea{min-height:150px;resize:vertical;line-height:1.5}
+    input:focus, textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+    .field{margin-bottom:12px}
+    .hint{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.45}
+    .checkrow{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      padding:12px 2px 4px;
+    }
+    .checkrow span{font-weight:800}
+    .switch{position:relative;width:58px;height:34px;flex:none}
+    .switch input{display:none}
+    .slider{position:absolute;inset:0;background:#cbd5e1;border-radius:999px;cursor:pointer;transition:.2s}
+    .slider:before{content:"";position:absolute;width:28px;height:28px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+    .switch input:checked + .slider{background:var(--primary)}
+    .switch input:checked + .slider:before{transform:translateX(24px)}
+    .btns{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}
+    button{
+      border:0;
+      border-radius:16px;
+      padding:16px 14px;
+      font-size:20px;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .primary{background:var(--primary);color:#fff}
+    .primary:active{background:var(--primary-dark)}
+    .ghost{background:#eef2ff;color:#1e3a8a}
+    .light{background:#f3f4f6;color:#374151}
+    .danger{background:#fee2e2;color:#991b1b}
+    .resultBox{text-align:center;padding:18px 8px 10px}
+    .resultLabel{font-size:15px;color:var(--muted);font-weight:800}
+    .result{
+      min-height:112px;
+      display:flex;align-items:center;justify-content:center;
+      font-size:76px;
+      font-weight:1000;
+      letter-spacing:-.05em;
+      word-break:break-word;
+      line-height:1.05;
+      margin:6px 0;
+    }
+    .result.name{font-size:54px}
+    .meta{
+      display:flex;flex-wrap:wrap;justify-content:center;gap:8px;
+      color:#475569;font-size:14px;margin-top:4px;
+    }
+    .pill{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:999px;padding:6px 10px;font-weight:700}
+    .pickedTitle{font-weight:900;margin:2px 0 10px;font-size:17px}
+    .pickedList{display:flex;flex-wrap:wrap;gap:8px;min-height:40px}
+    .chip{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:999px;padding:8px 12px;font-weight:900;font-size:16px}
+    .empty{color:var(--muted);font-size:14px;padding:8px 0}
+    .hidden{display:none}
+    .smallBtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+    .message{text-align:center;font-weight:900;color:#334155;min-height:24px;margin-top:8px}
+    footer{text-align:center;color:#94a3b8;font-size:12px;margin-top:18px}
+    @media (max-width:420px){
+      h1{font-size:31px}.result{font-size:70px}.result.name{font-size:46px}.card{padding:16px}button{font-size:19px}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>🎲 랜덤뽑기</h1>
+      <div class="subtitle">수업 발표자 선정용 간단 도구</div>
+    </header>
+
+    <div class="tabs">
+      <button class="tab active" id="numberTab">번호 뽑기</button>
+      <button class="tab" id="nameTab">이름 뽑기</button>
+    </div>
+
+    <section id="numberPanel">
+      <div class="card">
+        <div class="grid2">
+          <div class="field">
+            <label for="startNo">시작 번호</label>
+            <input id="startNo" type="number" inputmode="numeric" value="1" />
+          </div>
+          <div class="field">
+            <label for="endNo">끝 번호</label>
+            <input id="endNo" type="number" inputmode="numeric" value="20" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="excludeNo">제외할 번호</label>
+          <input id="excludeNo" type="text" inputmode="text" placeholder="예: 5, 12, 27" />
+          <div class="hint">쉼표, 띄어쓰기, ‘번’ 모두 가능해요. 예: 5 12 27 / 5번, 12번</div>
+        </div>
+        <div class="checkrow">
+          <span>중복 없이 뽑기</span>
+          <label class="switch" aria-label="중복 없이 뽑기">
+            <input id="noRepeatNumber" type="checkbox" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="btns">
+          <button class="primary" id="pickNumberBtn">🎲 뽑기</button>
+        </div>
+      </div>
+
+      <div class="card resultBox">
+        <div class="resultLabel">선택된 번호</div>
+        <div class="result" id="numberResult">?</div>
+        <div class="meta" id="numberMeta"></div>
+        <div class="message" id="numberMessage"></div>
+      </div>
+
+      <div class="card">
+        <div class="pickedTitle">발표 완료</div>
+        <div class="pickedList" id="numberPickedList"><div class="empty">아직 뽑힌 번호가 없습니다.</div></div>
+        <div class="smallBtns">
+          <button class="light" id="resetNumberBtn">다시 시작</button>
+          <button class="danger" id="clearNumberSettingsBtn">설정 초기화</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="namePanel" class="hidden">
+      <div class="card">
+        <div class="field">
+          <label for="nameList">학생 이름</label>
+          <textarea id="nameList" placeholder="한 줄에 한 명씩 입력하세요.&#10;예)&#10;김민준&#10;이서연&#10;박지훈"></textarea>
+          <div class="hint">한 줄에 한 명씩 입력하면 됩니다. 저장하면 다음에 열어도 남아 있어요.</div>
+        </div>
+        <div class="checkrow">
+          <span>중복 없이 뽑기</span>
+          <label class="switch" aria-label="중복 없이 뽑기">
+            <input id="noRepeatName" type="checkbox" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="smallBtns">
+          <button class="ghost" id="saveNamesBtn">이름 저장</button>
+          <button class="primary" id="pickNameBtn">🎲 뽑기</button>
+        </div>
+      </div>
+
+      <div class="card resultBox">
+        <div class="resultLabel">선택된 이름</div>
+        <div class="result name" id="nameResult">?</div>
+        <div class="meta" id="nameMeta"></div>
+        <div class="message" id="nameMessage"></div>
+      </div>
+
+      <div class="card">
+        <div class="pickedTitle">발표 완료</div>
+        <div class="pickedList" id="namePickedList"><div class="empty">아직 뽑힌 이름이 없습니다.</div></div>
+        <div class="smallBtns">
+          <button class="light" id="resetNameBtn">다시 시작</button>
+          <button class="danger" id="clearNameSettingsBtn">이름 삭제</button>
+        </div>
+      </div>
+    </section>
+
+    <footer>랜덤뽑기 v1.0</footer>
+  </div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const storeKey = 'randomPicker.v1';
+  const defaultState = {
+    mode: 'number',
+    startNo: 1,
+    endNo: 20,
+    excludeNo: '',
+    noRepeatNumber: true,
+    pickedNumbers: [],
+    names: '',
+    noRepeatName: true,
+    pickedNames: []
+  };
+  let state = loadState();
+  let rollingTimer = null;
+
+  function loadState(){
+    try { return {...defaultState, ...JSON.parse(localStorage.getItem(storeKey) || '{}')}; }
+    catch { return {...defaultState}; }
+  }
+  function saveState(){ localStorage.setItem(storeKey, JSON.stringify(state)); }
+  function parseNumbers(text){
+    return (text.match(/\d+/g) || []).map(Number);
+  }
+  function uniq(arr){ return [...new Set(arr)]; }
+  function randItem(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+  function setMessage(id, msg){ $(id).textContent = msg || ''; }
+
+  function buildCandidates(){
+    const start = Number($('startNo').value);
+    const end = Number($('endNo').value);
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return {error:'시작 번호와 끝 번호를 입력하세요.'};
+    if (start > end) return {error:'시작 번호가 끝 번호보다 클 수 없습니다.'};
+    const excluded = uniq(parseNumbers($('excludeNo').value));
+    let nums = [];
+    for(let n=start; n<=end; n++) nums.push(n);
+    nums = nums.filter(n => !excluded.includes(n));
+    if ($('noRepeatNumber').checked) nums = nums.filter(n => !state.pickedNumbers.includes(n));
+    return {nums, excluded, totalRange:end-start+1};
+  }
+
+  function updateNumberMeta(){
+    const built = buildCandidates();
+    if (built.error){ $('numberMeta').innerHTML = `<span class="pill">${built.error}</span>`; return; }
+    const excludedText = built.excluded.length ? built.excluded.join(', ') : '없음';
+    $('numberMeta').innerHTML = `
+      <span class="pill">현재 후보 ${built.nums.length}명</span>
+      <span class="pill">제외 ${excludedText}</span>
+      <span class="pill">완료 ${state.pickedNumbers.length}명</span>
+    `;
+  }
+
+  function renderPickedNumbers(){
+    const wrap = $('numberPickedList');
+    if (!state.pickedNumbers.length){ wrap.innerHTML = '<div class="empty">아직 뽑힌 번호가 없습니다.</div>'; return; }
+    wrap.innerHTML = state.pickedNumbers.map(n => `<span class="chip">${n}</span>`).join('');
+  }
+
+  function rollNumber(finalValue){
+    clearInterval(rollingTimer);
+    const built = buildCandidates();
+    const sample = built.nums.length ? built.nums : [finalValue];
+    let count = 0;
+    $('pickNumberBtn').disabled = true;
+    rollingTimer = setInterval(() => {
+      $('numberResult').textContent = randItem(sample);
+      count++;
+      if (count >= 16){
+        clearInterval(rollingTimer);
+        $('numberResult').textContent = finalValue;
+        $('pickNumberBtn').disabled = false;
+      }
+    }, 55);
+  }
+
+  function pickNumber(){
+    syncNumberInputs();
+    const built = buildCandidates();
+    if (built.error){ setMessage('numberMessage', built.error); updateNumberMeta(); return; }
+    if (!built.nums.length){ setMessage('numberMessage', '뽑을 수 있는 번호가 없습니다. 다시 시작을 눌러주세요.'); updateNumberMeta(); return; }
+    const chosen = randItem(built.nums);
+    if ($('noRepeatNumber').checked && !state.pickedNumbers.includes(chosen)) state.pickedNumbers.push(chosen);
+    saveState();
+    setMessage('numberMessage', '');
+    rollNumber(chosen);
+    renderPickedNumbers();
+    updateNumberMeta();
+  }
+
+  function getNames(){
+    return $('nameList').value.split('\n').map(s => s.trim()).filter(Boolean);
+  }
+  function updateNameMeta(){
+    let names = getNames();
+    if ($('noRepeatName').checked) names = names.filter(n => !state.pickedNames.includes(n));
+    $('nameMeta').innerHTML = `<span class="pill">현재 후보 ${names.length}명</span><span class="pill">완료 ${state.pickedNames.length}명</span>`;
+  }
+  function renderPickedNames(){
+    const wrap = $('namePickedList');
+    if (!state.pickedNames.length){ wrap.innerHTML = '<div class="empty">아직 뽑힌 이름이 없습니다.</div>'; return; }
+    wrap.innerHTML = state.pickedNames.map(n => `<span class="chip">${escapeHtml(n)}</span>`).join('');
+  }
+  function escapeHtml(str){
+    return str.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  }
+  function rollName(finalValue){
+    clearInterval(rollingTimer);
+    let sample = getNames();
+    if ($('noRepeatName').checked) sample = sample.filter(n => !state.pickedNames.includes(n));
+    sample = sample.length ? sample : [finalValue];
+    let count = 0;
+    $('pickNameBtn').disabled = true;
+    rollingTimer = setInterval(() => {
+      $('nameResult').textContent = randItem(sample);
+      count++;
+      if (count >= 16){
+        clearInterval(rollingTimer);
+        $('nameResult').textContent = finalValue;
+        $('pickNameBtn').disabled = false;
+      }
+    }, 55);
+  }
+  function pickName(){
+    syncNameInputs();
+    let names = getNames();
+    if (!names.length){ setMessage('nameMessage', '이름을 먼저 입력하세요.'); updateNameMeta(); return; }
+    if ($('noRepeatName').checked) names = names.filter(n => !state.pickedNames.includes(n));
+    if (!names.length){ setMessage('nameMessage', '뽑을 수 있는 이름이 없습니다. 다시 시작을 눌러주세요.'); updateNameMeta(); return; }
+    const chosen = randItem(names);
+    if ($('noRepeatName').checked && !state.pickedNames.includes(chosen)) state.pickedNames.push(chosen);
+    saveState();
+    setMessage('nameMessage', '');
+    rollName(chosen);
+    renderPickedNames();
+    updateNameMeta();
+  }
+
+  function syncNumberInputs(){
+    state.startNo = Number($('startNo').value) || 1;
+    state.endNo = Number($('endNo').value) || 20;
+    state.excludeNo = $('excludeNo').value;
+    state.noRepeatNumber = $('noRepeatNumber').checked;
+    saveState();
+  }
+  function syncNameInputs(){
+    state.names = $('nameList').value;
+    state.noRepeatName = $('noRepeatName').checked;
+    saveState();
+  }
+  function switchMode(mode){
+    state.mode = mode; saveState();
+    $('numberTab').classList.toggle('active', mode === 'number');
+    $('nameTab').classList.toggle('active', mode === 'name');
+    $('numberPanel').classList.toggle('hidden', mode !== 'number');
+    $('namePanel').classList.toggle('hidden', mode !== 'name');
+  }
+  function init(){
+    $('startNo').value = state.startNo;
+    $('endNo').value = state.endNo;
+    $('excludeNo').value = state.excludeNo;
+    $('noRepeatNumber').checked = state.noRepeatNumber;
+    $('nameList').value = state.names;
+    $('noRepeatName').checked = state.noRepeatName;
+    switchMode(state.mode);
+    renderPickedNumbers(); renderPickedNames(); updateNumberMeta(); updateNameMeta();
+
+    $('numberTab').onclick = () => switchMode('number');
+    $('nameTab').onclick = () => switchMode('name');
+    $('pickNumberBtn').onclick = pickNumber;
+    $('pickNameBtn').onclick = pickName;
+    $('resetNumberBtn').onclick = () => { state.pickedNumbers = []; $('numberResult').textContent='?'; saveState(); renderPickedNumbers(); updateNumberMeta(); setMessage('numberMessage','초기화했습니다.'); };
+    $('clearNumberSettingsBtn').onclick = () => {
+      if (!confirm('번호 설정과 발표 완료 목록을 모두 초기화할까요?')) return;
+      state.startNo=1; state.endNo=20; state.excludeNo=''; state.noRepeatNumber=true; state.pickedNumbers=[]; saveState(); init();
+    };
+    $('saveNamesBtn').onclick = () => { syncNameInputs(); setMessage('nameMessage','이름을 저장했습니다.'); updateNameMeta(); };
+    $('resetNameBtn').onclick = () => { state.pickedNames = []; $('nameResult').textContent='?'; saveState(); renderPickedNames(); updateNameMeta(); setMessage('nameMessage','초기화했습니다.'); };
+    $('clearNameSettingsBtn').onclick = () => {
+      if (!confirm('입력한 이름과 발표 완료 목록을 모두 삭제할까요?')) return;
+      state.names=''; state.pickedNames=[]; state.noRepeatName=true; saveState(); init();
+    };
+    ['startNo','endNo','excludeNo','noRepeatNumber'].forEach(id => $(id).addEventListener('input', () => { syncNumberInputs(); updateNumberMeta(); }));
+    $('nameList').addEventListener('input', () => { syncNameInputs(); updateNameMeta(); });
+    $('noRepeatName').addEventListener('input', () => { syncNameInputs(); updateNameMeta(); });
+  }
+  init();
+})();
+</script>
+</body>
+</html>
