@@ -2,94 +2,1125 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>한자와의 만남</title>
 <style>
-  :root{--mint:#e8f6f3;--mint2:#62b6a8;--navy:#153b5b;--red:#d94b4b;--gray:#f5f7f8}
-  *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans KR',sans-serif;background:var(--mint);color:#18222b}
-  .wrap{max-width:520px;margin:0 auto;min-height:100vh;padding:22px 16px;display:flex;flex-direction:column;justify-content:center}
-  .card{background:white;border-radius:24px;padding:24px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
-  h1{margin:0 0 8px;text-align:center;color:var(--navy);font-size:34px} .sub{text-align:center;color:#607080;margin-bottom:22px}
-  .units{display:grid;gap:10px}.btn{width:100%;border:0;border-radius:16px;padding:15px 16px;font-size:18px;font-weight:700;background:var(--mint2);color:white;cursor:pointer}.btn.secondary{background:#eef3f5;color:var(--navy)}.btn.red{background:var(--red)}
-  .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;color:#607080;font-weight:700}.bar{height:10px;background:#e7ecef;border-radius:20px;overflow:hidden;margin:12px 0 20px}.bar>div{height:100%;background:var(--mint2);width:0%}
-  .hanja{text-align:center;font-size:112px;line-height:1.1;margin:10px 0 20px;font-family:'Noto Serif CJK KR','Batang',serif;color:#111}
-  label{display:block;font-weight:800;margin:12px 0 6px;color:var(--navy)} input{width:100%;padding:15px;border:2px solid #dde5e8;border-radius:14px;font-size:20px;text-align:center} input:focus{outline:none;border-color:var(--mint2)}
-  .result{background:var(--gray);border-radius:16px;padding:14px;margin:16px 0;font-size:18px;line-height:1.7}.ok{color:#16845f;font-weight:900}.no{color:var(--red);font-weight:900}.hidden{display:none}.wrong-list{font-size:22px;line-height:1.8;text-align:center}.small{font-size:14px;color:#6d7a84;text-align:center;margin-top:12px}
+  :root {
+    --bg:#f5fbf8; --card:#ffffff; --ink:#17233d; --muted:#637083;
+    --accent:#2aa876; --accent2:#177456; --bad:#e55353; --line:#dbe9e3;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif;
+    background:var(--bg); color:var(--ink);
+  }
+  .wrap { max-width:560px; margin:0 auto; padding:22px 16px 40px; }
+  header { text-align:center; padding:12px 0 18px; }
+  .app-title { font-size:30px; font-weight:900; margin:6px 0 4px; }
+  .sub { color:var(--muted); font-size:14px; }
+  .card {
+    background:var(--card); border:1px solid var(--line); border-radius:22px;
+    padding:18px; box-shadow:0 8px 24px rgba(23,35,61,.06); margin:12px 0;
+  }
+  button {
+    width:100%; border:0; border-radius:16px; padding:15px 14px;
+    font-size:17px; font-weight:800; background:var(--accent); color:white;
+    cursor:pointer; margin:7px 0;
+  }
+  button.secondary { background:#eef6f2; color:var(--accent2); border:1px solid var(--line); }
+  button.ghost { background:#fff; color:var(--muted); border:1px solid var(--line); }
+  button.danger { background:#fff1f1; color:var(--bad); border:1px solid #ffd1d1; }
+  .lesson-btn { text-align:left; display:flex; justify-content:space-between; gap:12px; align-items:center; }
+  .count { font-size:13px; color:var(--muted); font-weight:700; }
+  .row { display:flex; gap:10px; }
+  .row button { flex:1; }
+  .progress { color:var(--muted); font-weight:800; font-size:14px; margin-bottom:10px; }
+  .hanja {
+    font-family:"Noto Serif CJK KR","Noto Serif KR","Apple SD Gothic Neo",serif;
+    font-size:96px; line-height:1.05; text-align:center; font-weight:900; margin:14px 0 20px;
+  }
+  label { display:block; font-weight:900; margin:12px 0 6px; }
+  input {
+    width:100%; padding:15px 14px; border-radius:14px; border:1px solid var(--line);
+    font-size:20px; outline:none; background:#fbfffd;
+  }
+  input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(42,168,118,.14); }
+  .result { font-size:18px; font-weight:900; margin:14px 0; line-height:1.7; }
+  .ok { color:var(--accent2); }
+  .no { color:var(--bad); }
+  .answer-box { background:#f7faf8; border:1px dashed var(--line); border-radius:14px; padding:12px 14px; margin:12px 0; }
+  .wrong-list { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+  .pill { border:1px solid var(--line); background:#f8fcfa; border-radius:999px; padding:7px 11px; font-weight:900; }
+  .hidden { display:none !important; }
+  .score { text-align:center; font-size:22px; font-weight:900; line-height:1.6; }
+  .small { font-size:13px; color:var(--muted); line-height:1.5; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <section id="home" class="card">
-    <h1>한자와의 만남</h1>
-    <div class="sub">천재 중학교 한문 뜻·음 암기</div>
-    <div id="unitButtons" class="units"></div>
-    <button class="btn secondary" style="margin-top:10px" onclick="startAll()">전체 범위 랜덤</button>
-    <div class="small">v1.1 · 모바일용 · 단원 선택 → 뜻/음 입력 → 오답 다시 풀기</div>
-  </section>
+  <header>
+    <div style="font-size:42px">📖</div>
+    <div class="app-title">한자와의 만남</div>
+    <div class="sub">뜻·음 암기</div>
+  </header>
+
+  <main id="home" class="card">
+    <h2 style="margin:0 0 10px">단원 선택</h2>
+    <div id="lessonList"></div>
+    <button class="lesson-btn" onclick="selectLesson('__ALL__')"><span>전체 범위 랜덤</span><span class="count" id="allCount"></span></button>
+    <p class="small">구글 시트 수정본 기준으로 업데이트한 버전입니다.</p>
+  </main>
 
   <section id="mode" class="card hidden">
-    <h1 id="modeTitle">풀이 방식</h1>
-    <button class="btn" onclick="startQuiz(false)">순서대로 풀기</button>
-    <button class="btn secondary" style="margin-top:10px" onclick="startQuiz(true)">랜덤으로 풀기</button>
-    <button class="btn secondary" style="margin-top:18px" onclick="showHome()">처음으로</button>
+    <h2 id="modeTitle" style="margin:0 0 10px"></h2>
+    <button onclick="startQuiz(false)">순서대로 풀기</button>
+    <button onclick="startQuiz(true)">랜덤으로 풀기</button>
+    <button class="ghost" onclick="goHome()">처음으로</button>
   </section>
 
   <section id="quiz" class="card hidden">
-    <div class="top"><span id="quizUnit"></span><span id="count"></span></div>
-    <div class="bar"><div id="barFill"></div></div>
-    <div id="hanja" class="hanja">學</div>
-    <label>뜻</label><input id="meaningInput" autocomplete="off" />
-    <label>음</label><input id="soundInput" autocomplete="off" />
-    <div id="feedback" class="result hidden"></div>
-    <button id="mainBtn" class="btn" onclick="checkAnswer()">정답 확인</button>
+    <div class="progress" id="progress"></div>
+    <div class="hanja" id="hanja">漢</div>
+    <label for="meaningInput">뜻</label>
+    <input id="meaningInput" autocomplete="off" placeholder="뜻을 입력하세요" />
+    <label for="soundInput">음</label>
+    <input id="soundInput" autocomplete="off" placeholder="음을 입력하세요" />
+    <button id="checkBtn" onclick="checkAnswer()">정답 확인</button>
+    <div id="feedback" class="hidden"></div>
   </section>
 
-  <section id="end" class="card hidden">
-    <h1>결과</h1>
-    <div id="score" class="sub"></div>
-    <div id="wrongBox" class="result hidden"><b>틀린 한자</b><div id="wrongList" class="wrong-list"></div></div>
-    <button id="retryBtn" class="btn red hidden" onclick="retryWrong()">틀린 문제 다시 풀기</button>
-    <button class="btn secondary" style="margin-top:10px" onclick="showHome()">처음으로</button>
+  <section id="finish" class="card hidden">
+    <div class="score" id="scoreText"></div>
+    <div id="wrongArea"></div>
+    <button id="retryWrongBtn" class="hidden" onclick="retryWrong()">틀린 문제 다시 풀기</button>
+    <button class="secondary" onclick="goHome()">처음으로</button>
   </section>
 </div>
+
 <script>
-// 데이터 수정은 여기만 고치면 됩니다. {h:'한자', m:'뜻', s:'음'}
 const DATA = {
-  '01 한문은 처음이지': [
-    {h:'漢',m:'한나라',s:'한'},{h:'口',m:'입',s:'구'},{h:'字',m:'글자',s:'자'},{h:'馬',m:'말',s:'마'},{h:'文',m:'글월',s:'문'},{h:'肉',m:'고기',s:'육'},{h:'子',m:'아들',s:'자'},{h:'日',m:'날, 해',s:'일'},{h:'中',m:'가운데',s:'중'},{h:'國',m:'나라',s:'국'},{h:'韓',m:'나라이름',s:'한'},{h:'木',m:'나무, 근본',s:'목'},{h:'大',m:'크다',s:'대'},{h:'十',m:'열',s:'십'},{h:'目',m:'눈',s:'목'},{h:'回',m:'돌다',s:'회'},{h:'三',m:'석',s:'삼'},{h:'小',m:'작다',s:'소'},{h:'川',m:'내',s:'천'},{h:'近',m:'가깝다',s:'근'},{h:'人',m:'사람',s:'인'},{h:'犬',m:'개',s:'견'}
+  "01 한문은 처음이지": [
+    {
+      "hanja": "漢",
+      "meaning": "한나라",
+      "sound": "한"
+    },
+    {
+      "hanja": "口",
+      "meaning": "입",
+      "sound": "구"
+    },
+    {
+      "hanja": "字",
+      "meaning": "글자",
+      "sound": "자"
+    },
+    {
+      "hanja": "馬",
+      "meaning": "말",
+      "sound": "마"
+    },
+    {
+      "hanja": "文",
+      "meaning": "글월",
+      "sound": "문"
+    },
+    {
+      "hanja": "肉",
+      "meaning": "고기",
+      "sound": "육"
+    },
+    {
+      "hanja": "子",
+      "meaning": "아들",
+      "sound": "자"
+    },
+    {
+      "hanja": "曰",
+      "meaning": "말하다",
+      "sound": "왈"
+    },
+    {
+      "hanja": "中",
+      "meaning": "가운데",
+      "sound": "중"
+    },
+    {
+      "hanja": "國",
+      "meaning": "나라",
+      "sound": "국"
+    },
+    {
+      "hanja": "韓",
+      "meaning": "나라 이름",
+      "sound": "한"
+    },
+    {
+      "hanja": "本",
+      "meaning": "뿌리, 근본",
+      "sound": "본"
+    },
+    {
+      "hanja": "日",
+      "meaning": "날, 해",
+      "sound": "일"
+    },
+    {
+      "hanja": "太",
+      "meaning": "크다",
+      "sound": "태"
+    },
+    {
+      "hanja": "十",
+      "meaning": "열",
+      "sound": "십"
+    },
+    {
+      "hanja": "目",
+      "meaning": "눈",
+      "sound": "목"
+    },
+    {
+      "hanja": "回",
+      "meaning": "돌다",
+      "sound": "회"
+    },
+    {
+      "hanja": "三",
+      "meaning": "셋",
+      "sound": "삼"
+    },
+    {
+      "hanja": "小",
+      "meaning": "작다",
+      "sound": "소"
+    },
+    {
+      "hanja": "川",
+      "meaning": "내",
+      "sound": "천"
+    },
+    {
+      "hanja": "近",
+      "meaning": "가깝다",
+      "sound": "근"
+    },
+    {
+      "hanja": "人",
+      "meaning": "사람",
+      "sound": "인"
+    },
+    {
+      "hanja": "犬",
+      "meaning": "개",
+      "sound": "견"
+    }
   ],
-  '02 그려서 만든 한자': [
-    {h:'牛',m:'소',s:'우'},{h:'月',m:'달',s:'월'},{h:'火',m:'불',s:'화'},{h:'山',m:'산',s:'산'},{h:'上',m:'위',s:'상'},{h:'下',m:'아래',s:'하'},{h:'末',m:'끝',s:'말'},{h:'一',m:'하나',s:'일'},{h:'水',m:'물',s:'수'},{h:'四',m:'넉',s:'사'},{h:'九',m:'아홉',s:'구'},{h:'計',m:'세다',s:'계'},{h:'木',m:'나무',s:'목'},{h:'五',m:'다섯',s:'오'},{h:'電',m:'번개',s:'전'},{h:'大',m:'크다',s:'대'},{h:'金',m:'쇠',s:'금'},{h:'六',m:'여섯',s:'육'},{h:'少',m:'적다',s:'소'},{h:'男',m:'남자',s:'남'},{h:'土',m:'흙',s:'토'},{h:'七',m:'일곱',s:'칠'},{h:'年',m:'해, 나이',s:'년'},{h:'女',m:'여자',s:'녀'},{h:'二',m:'둘',s:'이'},{h:'八',m:'여덟',s:'팔'},{h:'時',m:'때',s:'시'}
+  "02 그려서 만든 한자": [
+    {
+      "hanja": "牛",
+      "meaning": "소",
+      "sound": "우"
+    },
+    {
+      "hanja": "月",
+      "meaning": "달",
+      "sound": "월"
+    },
+    {
+      "hanja": "火",
+      "meaning": "불",
+      "sound": "화"
+    },
+    {
+      "hanja": "山",
+      "meaning": "산",
+      "sound": "산"
+    },
+    {
+      "hanja": "上",
+      "meaning": "위",
+      "sound": "상"
+    },
+    {
+      "hanja": "下",
+      "meaning": "아래",
+      "sound": "하"
+    },
+    {
+      "hanja": "末",
+      "meaning": "끝",
+      "sound": "말"
+    },
+    {
+      "hanja": "一",
+      "meaning": "하나",
+      "sound": "일"
+    },
+    {
+      "hanja": "水",
+      "meaning": "물",
+      "sound": "수"
+    },
+    {
+      "hanja": "四",
+      "meaning": "넷",
+      "sound": "사"
+    },
+    {
+      "hanja": "九",
+      "meaning": "아홉",
+      "sound": "구"
+    },
+    {
+      "hanja": "計",
+      "meaning": "세다",
+      "sound": "계"
+    },
+    {
+      "hanja": "木",
+      "meaning": "나무",
+      "sound": "목"
+    },
+    {
+      "hanja": "五",
+      "meaning": "다섯",
+      "sound": "오"
+    },
+    {
+      "hanja": "軍",
+      "meaning": "군사",
+      "sound": "군"
+    },
+    {
+      "hanja": "大",
+      "meaning": "크다",
+      "sound": "대"
+    },
+    {
+      "hanja": "金",
+      "meaning": "쇠",
+      "sound": "금"
+    },
+    {
+      "hanja": "六",
+      "meaning": "여섯",
+      "sound": "륙"
+    },
+    {
+      "hanja": "少",
+      "meaning": "적다",
+      "sound": "소"
+    },
+    {
+      "hanja": "男",
+      "meaning": "남자",
+      "sound": "남"
+    },
+    {
+      "hanja": "土",
+      "meaning": "흙",
+      "sound": "토"
+    },
+    {
+      "hanja": "七",
+      "meaning": "일곱",
+      "sound": "칠"
+    },
+    {
+      "hanja": "年",
+      "meaning": "해, 나이",
+      "sound": "년"
+    },
+    {
+      "hanja": "女",
+      "meaning": "여자",
+      "sound": "녀"
+    },
+    {
+      "hanja": "二",
+      "meaning": "둘",
+      "sound": "이"
+    },
+    {
+      "hanja": "八",
+      "meaning": "여덟",
+      "sound": "팔"
+    },
+    {
+      "hanja": "時",
+      "meaning": "때",
+      "sound": "시"
+    }
   ],
-  '03 합쳐서 만든 한자': [
-    {h:'好',m:'좋다',s:'호'},{h:'林',m:'수풀',s:'림'},{h:'休',m:'쉬다',s:'휴'},{h:'炎',m:'불꽃',s:'염'},{h:'門',m:'문',s:'문'},{h:'忘',m:'잊다',s:'망'},{h:'耳',m:'귀',s:'이'},{h:'才',m:'재주',s:'재'},{h:'聞',m:'듣다',s:'문'},{h:'貝',m:'조개',s:'패'},{h:'問',m:'묻다',s:'문'},{h:'心',m:'마음',s:'심'},{h:'財',m:'재물',s:'재'},{h:'亡',m:'망하다, 잃다',s:'망'},{h:'海',m:'바다',s:'해'},{h:'稀',m:'성기다',s:'희'},{h:'指',m:'가리키다',s:'지'},{h:'角',m:'뿔',s:'각'},{h:'鯨',m:'고래',s:'경'},{h:'刀',m:'칼',s:'도'},{h:'刑',m:'형벌',s:'형'},{h:'手',m:'손',s:'수'},{h:'仙',m:'신선',s:'선'},{h:'味',m:'맛',s:'미'},{h:'打',m:'치다',s:'타'},{h:'忙',m:'바쁘다',s:'망'},{h:'足',m:'발',s:'족'},{h:'雨',m:'비',s:'우'},{h:'江',m:'강',s:'강'},{h:'頭',m:'머리',s:'두'}
+  "03 합쳐서 만든 한자": [
+    {
+      "hanja": "好",
+      "meaning": "좋다",
+      "sound": "호"
+    },
+    {
+      "hanja": "林",
+      "meaning": "수풀",
+      "sound": "림"
+    },
+    {
+      "hanja": "休",
+      "meaning": "쉬다",
+      "sound": "휴"
+    },
+    {
+      "hanja": "炎",
+      "meaning": "불꽃",
+      "sound": "염"
+    },
+    {
+      "hanja": "門",
+      "meaning": "문",
+      "sound": "문"
+    },
+    {
+      "hanja": "忘",
+      "meaning": "잊다",
+      "sound": "망"
+    },
+    {
+      "hanja": "耳",
+      "meaning": "귀",
+      "sound": "이"
+    },
+    {
+      "hanja": "才",
+      "meaning": "재주",
+      "sound": "재"
+    },
+    {
+      "hanja": "聞",
+      "meaning": "듣다",
+      "sound": "문"
+    },
+    {
+      "hanja": "貝",
+      "meaning": "조개",
+      "sound": "패"
+    },
+    {
+      "hanja": "問",
+      "meaning": "묻다",
+      "sound": "문"
+    },
+    {
+      "hanja": "心",
+      "meaning": "마음",
+      "sound": "심"
+    },
+    {
+      "hanja": "財",
+      "meaning": "재물",
+      "sound": "재"
+    },
+    {
+      "hanja": "亡",
+      "meaning": "망하다, 잃다",
+      "sound": "망"
+    },
+    {
+      "hanja": "海",
+      "meaning": "바다",
+      "sound": "해"
+    },
+    {
+      "hanja": "霜",
+      "meaning": "서리",
+      "sound": "상"
+    },
+    {
+      "hanja": "指",
+      "meaning": "가리키다",
+      "sound": "지"
+    },
+    {
+      "hanja": "角",
+      "meaning": "뿔",
+      "sound": "각"
+    },
+    {
+      "hanja": "賞",
+      "meaning": "상 주다",
+      "sound": "상"
+    },
+    {
+      "hanja": "刀",
+      "meaning": "칼",
+      "sound": "도"
+    },
+    {
+      "hanja": "刑",
+      "meaning": "형벌",
+      "sound": "형"
+    },
+    {
+      "hanja": "手",
+      "meaning": "손",
+      "sound": "수"
+    },
+    {
+      "hanja": "仙",
+      "meaning": "신선",
+      "sound": "선"
+    },
+    {
+      "hanja": "味",
+      "meaning": "맛",
+      "sound": "미"
+    },
+    {
+      "hanja": "打",
+      "meaning": "치다",
+      "sound": "타"
+    },
+    {
+      "hanja": "忙",
+      "meaning": "바쁘다",
+      "sound": "망"
+    },
+    {
+      "hanja": "足",
+      "meaning": "발",
+      "sound": "족"
+    },
+    {
+      "hanja": "雨",
+      "meaning": "비",
+      "sound": "우"
+    },
+    {
+      "hanja": "江",
+      "meaning": "강",
+      "sound": "강"
+    },
+    {
+      "hanja": "頭",
+      "meaning": "머리",
+      "sound": "두"
+    }
   ],
-  '04 나를 찾아가는 단어': [
-    {h:'自',m:'스스로',s:'자'},{h:'姓',m:'성씨',s:'성'},{h:'名',m:'이름',s:'명'},{h:'住',m:'살다',s:'주'},{h:'所',m:'바, 곳',s:'소'},{h:'選',m:'가리다',s:'선'},{h:'興',m:'일어나다',s:'흥'},{h:'關',m:'관계하다',s:'관'},{h:'進',m:'나아가다',s:'진'},{h:'路',m:'길',s:'로'},{h:'北',m:'북녘',s:'북'},{h:'出',m:'나가다',s:'출'},{h:'家',m:'집',s:'가'},{h:'母',m:'어머니',s:'모'},{h:'寸',m:'마디',s:'촌'},{h:'西',m:'서쪽',s:'서'},{h:'入',m:'들어가다',s:'입'},{h:'族',m:'겨레',s:'족'},{h:'兄',m:'형',s:'형'},{h:'數',m:'세다',s:'수'},{h:'南',m:'남녘',s:'남'},{h:'望',m:'바라다',s:'망'},{h:'親',m:'친하다',s:'친'},{h:'弟',m:'아우',s:'제'},{h:'東',m:'동쪽',s:'동'},{h:'信',m:'믿다',s:'신'},{h:'祖',m:'할아버지',s:'조'},{h:'姉',m:'손위 누이',s:'자'},{h:'退',m:'물러나다',s:'퇴'},{h:'願',m:'원하다',s:'원'},{h:'父',m:'아버지',s:'부'},{h:'妹',m:'손아래 누이',s:'매'}
+  "04 나를 찾아가는 단어": [
+    {
+      "hanja": "自",
+      "meaning": "스스로",
+      "sound": "자"
+    },
+    {
+      "hanja": "姓",
+      "meaning": "성씨",
+      "sound": "성"
+    },
+    {
+      "hanja": "名",
+      "meaning": "이름",
+      "sound": "명"
+    },
+    {
+      "hanja": "住",
+      "meaning": "살다",
+      "sound": "주"
+    },
+    {
+      "hanja": "所",
+      "meaning": "바, 곳",
+      "sound": "소"
+    },
+    {
+      "hanja": "選",
+      "meaning": "가리다",
+      "sound": "선"
+    },
+    {
+      "hanja": "興",
+      "meaning": "일어나다",
+      "sound": "흥"
+    },
+    {
+      "hanja": "關",
+      "meaning": "관계하다",
+      "sound": "관"
+    },
+    {
+      "hanja": "進",
+      "meaning": "나아가다",
+      "sound": "진"
+    },
+    {
+      "hanja": "路",
+      "meaning": "길",
+      "sound": "로"
+    },
+    {
+      "hanja": "北",
+      "meaning": "북쪽",
+      "sound": "북"
+    },
+    {
+      "hanja": "出",
+      "meaning": "나가다",
+      "sound": "출"
+    },
+    {
+      "hanja": "家",
+      "meaning": "집",
+      "sound": "가"
+    },
+    {
+      "hanja": "母",
+      "meaning": "어머니",
+      "sound": "모"
+    },
+    {
+      "hanja": "寸",
+      "meaning": "마디",
+      "sound": "촌"
+    },
+    {
+      "hanja": "西",
+      "meaning": "서쪽",
+      "sound": "서"
+    },
+    {
+      "hanja": "入",
+      "meaning": "들어가다",
+      "sound": "입"
+    },
+    {
+      "hanja": "族",
+      "meaning": "겨레",
+      "sound": "족"
+    },
+    {
+      "hanja": "兄",
+      "meaning": "형",
+      "sound": "형"
+    },
+    {
+      "hanja": "數",
+      "meaning": "세다",
+      "sound": "수"
+    },
+    {
+      "hanja": "南",
+      "meaning": "남쪽",
+      "sound": "남"
+    },
+    {
+      "hanja": "望",
+      "meaning": "바라다",
+      "sound": "망"
+    },
+    {
+      "hanja": "親",
+      "meaning": "친하다",
+      "sound": "친"
+    },
+    {
+      "hanja": "弟",
+      "meaning": "아우",
+      "sound": "제"
+    },
+    {
+      "hanja": "東",
+      "meaning": "동쪽",
+      "sound": "동"
+    },
+    {
+      "hanja": "信",
+      "meaning": "믿다",
+      "sound": "신"
+    },
+    {
+      "hanja": "祖",
+      "meaning": "할아버지",
+      "sound": "조"
+    },
+    {
+      "hanja": "姉",
+      "meaning": "손위 누이",
+      "sound": "자"
+    },
+    {
+      "hanja": "退",
+      "meaning": "물러나다",
+      "sound": "퇴"
+    },
+    {
+      "hanja": "願",
+      "meaning": "원하다",
+      "sound": "원"
+    },
+    {
+      "hanja": "父",
+      "meaning": "아버지",
+      "sound": "부"
+    },
+    {
+      "hanja": "妹",
+      "meaning": "손아래 누이",
+      "sound": "매"
+    }
   ],
-  '05 즐거운 우리 학교': [
-    {h:'學',m:'배우다',s:'학'},{h:'校',m:'학교',s:'교'},{h:'科',m:'과목',s:'과'},{h:'登',m:'오르다',s:'등'},{h:'授',m:'주다',s:'수'},{h:'業',m:'일',s:'업'},{h:'多',m:'많다',s:'다'},{h:'情',m:'뜻, 정',s:'정'},{h:'賣',m:'팔다',s:'매'},{h:'店',m:'가게',s:'점'},{h:'給',m:'주다',s:'급'},{h:'食',m:'먹다',s:'식'},{h:'放',m:'놓다',s:'방'},{h:'開',m:'열다',s:'개'},{h:'受',m:'받다',s:'수'},{h:'過',m:'지나다',s:'과'},{h:'敬',m:'공경',s:'경'},{h:'商',m:'장사',s:'상'},{h:'敎',m:'가르치다',s:'교'},{h:'去',m:'가다',s:'거'},{h:'卷',m:'책',s:'권'},{h:'閉',m:'닫다',s:'폐'},{h:'育',m:'기르다',s:'육'},{h:'防',m:'막다',s:'방'},{h:'買',m:'사다',s:'매'},{h:'訓',m:'가르치다',s:'훈'},{h:'經',m:'글, 지나다',s:'경'}
+  "05 즐거운 우리 학교": [
+    {
+      "hanja": "學",
+      "meaning": "배우다",
+      "sound": "학"
+    },
+    {
+      "hanja": "校",
+      "meaning": "학교",
+      "sound": "교"
+    },
+    {
+      "hanja": "科",
+      "meaning": "과목",
+      "sound": "과"
+    },
+    {
+      "hanja": "登",
+      "meaning": "오르다",
+      "sound": "등"
+    },
+    {
+      "hanja": "授",
+      "meaning": "주다",
+      "sound": "수"
+    },
+    {
+      "hanja": "業",
+      "meaning": "일",
+      "sound": "업"
+    },
+    {
+      "hanja": "多",
+      "meaning": "많다",
+      "sound": "다"
+    },
+    {
+      "hanja": "情",
+      "meaning": "뜻, 정",
+      "sound": "정"
+    },
+    {
+      "hanja": "賣",
+      "meaning": "팔다",
+      "sound": "매"
+    },
+    {
+      "hanja": "店",
+      "meaning": "가게",
+      "sound": "점"
+    },
+    {
+      "hanja": "給",
+      "meaning": "주다",
+      "sound": "급"
+    },
+    {
+      "hanja": "食",
+      "meaning": "먹다",
+      "sound": "식"
+    },
+    {
+      "hanja": "放",
+      "meaning": "놓다",
+      "sound": "방"
+    },
+    {
+      "hanja": "開",
+      "meaning": "열다",
+      "sound": "개"
+    },
+    {
+      "hanja": "受",
+      "meaning": "받다",
+      "sound": "수"
+    },
+    {
+      "hanja": "過",
+      "meaning": "지나다",
+      "sound": "과"
+    },
+    {
+      "hanja": "敬",
+      "meaning": "공경",
+      "sound": "경"
+    },
+    {
+      "hanja": "商",
+      "meaning": "장사",
+      "sound": "상"
+    },
+    {
+      "hanja": "敎",
+      "meaning": "가르치다",
+      "sound": "교"
+    },
+    {
+      "hanja": "去",
+      "meaning": "가다",
+      "sound": "거"
+    },
+    {
+      "hanja": "老",
+      "meaning": "늙다",
+      "sound": "로"
+    },
+    {
+      "hanja": "書",
+      "meaning": "글, 책",
+      "sound": "서"
+    },
+    {
+      "hanja": "室",
+      "meaning": "집",
+      "sound": "실"
+    },
+    {
+      "hanja": "擧",
+      "meaning": "들다",
+      "sound": "거"
+    },
+    {
+      "hanja": "閉",
+      "meaning": "닫다",
+      "sound": "폐"
+    },
+    {
+      "hanja": "育",
+      "meaning": "기르다",
+      "sound": "육"
+    },
+    {
+      "hanja": "防",
+      "meaning": "막다",
+      "sound": "방"
+    },
+    {
+      "hanja": "買",
+      "meaning": "사다",
+      "sound": "매"
+    },
+    {
+      "hanja": "訓",
+      "meaning": "가르치다",
+      "sound": "훈"
+    },
+    {
+      "hanja": "經",
+      "meaning": "글, 지나다",
+      "sound": "경"
+    }
   ],
-  '07 생활 속 성어': [
-    {h:'長',m:'길다',s:'장'},{h:'場',m:'마당',s:'장'},{h:'將',m:'장수',s:'장'},{h:'忘',m:'잊다',s:'망'},{h:'助',m:'돕다',s:'조'},{h:'益',m:'익하다, 더욱',s:'익'},{h:'鐵',m:'쇠',s:'철'},{h:'面',m:'얼굴',s:'면'},{h:'千',m:'일천',s:'천'},{h:'皮',m:'가죽',s:'피'},{h:'假',m:'거짓',s:'가'},{h:'高',m:'높다',s:'고'},{h:'聲',m:'소리',s:'성'},{h:'行',m:'다니다',s:'행'},{h:'對',m:'대하다',s:'대'},{h:'低',m:'낮다',s:'저'},{h:'藥',m:'약',s:'약'},{h:'士',m:'선비',s:'사'},{h:'顔',m:'얼굴',s:'안'},{h:'救',m:'구원하다',s:'구'},{h:'判',m:'판단하다',s:'판'},{h:'醫',m:'의원',s:'의'},{h:'畫',m:'그림',s:'화'},{h:'扶',m:'붇다',s:'부'},{h:'事',m:'일',s:'사'},{h:'師',m:'스승',s:'사'},{h:'短',m:'짧다',s:'단'},{h:'協',m:'합동하다',s:'협'},{h:'飛',m:'날다',s:'비'}
+  "07 생활 속 성어": [
+    {
+      "hanja": "長",
+      "meaning": "길다",
+      "sound": "장"
+    },
+    {
+      "hanja": "場",
+      "meaning": "마당",
+      "sound": "장"
+    },
+    {
+      "hanja": "將",
+      "meaning": "장수",
+      "sound": "장"
+    },
+    {
+      "hanja": "志",
+      "meaning": "뜻",
+      "sound": "지"
+    },
+    {
+      "hanja": "里",
+      "meaning": "마을, 거리 단위",
+      "sound": "리"
+    },
+    {
+      "hanja": "助",
+      "meaning": "돕다",
+      "sound": "조"
+    },
+    {
+      "hanja": "眼",
+      "meaning": "눈",
+      "sound": "안"
+    },
+    {
+      "hanja": "益",
+      "meaning": "익하다, 더욱",
+      "sound": "익"
+    },
+    {
+      "hanja": "鐵",
+      "meaning": "쇠",
+      "sound": "철"
+    },
+    {
+      "hanja": "壯",
+      "meaning": "씩씩하다",
+      "sound": "장"
+    },
+    {
+      "hanja": "面",
+      "meaning": "얼굴",
+      "sound": "면"
+    },
+    {
+      "hanja": "千",
+      "meaning": "일천",
+      "sound": "천"
+    },
+    {
+      "hanja": "皮",
+      "meaning": "가죽",
+      "sound": "피"
+    },
+    {
+      "hanja": "假",
+      "meaning": "거짓",
+      "sound": "가"
+    },
+    {
+      "hanja": "高",
+      "meaning": "높다",
+      "sound": "고"
+    },
+    {
+      "hanja": "聲",
+      "meaning": "소리",
+      "sound": "성"
+    },
+    {
+      "hanja": "行",
+      "meaning": "다니다",
+      "sound": "행"
+    },
+    {
+      "hanja": "對",
+      "meaning": "대하다",
+      "sound": "대"
+    },
+    {
+      "hanja": "低",
+      "meaning": "낮다",
+      "sound": "저"
+    },
+    {
+      "hanja": "樂",
+      "meaning": "즐겁다",
+      "sound": "락"
+    },
+    {
+      "hanja": "士",
+      "meaning": "선비",
+      "sound": "사"
+    },
+    {
+      "hanja": "顔",
+      "meaning": "얼굴",
+      "sound": "안"
+    },
+    {
+      "hanja": "救",
+      "meaning": "구원하다",
+      "sound": "구"
+    },
+    {
+      "hanja": "判",
+      "meaning": "판단하다",
+      "sound": "판"
+    },
+    {
+      "hanja": "醫",
+      "meaning": "의원",
+      "sound": "의"
+    },
+    {
+      "hanja": "畫",
+      "meaning": "그림",
+      "sound": "화"
+    },
+    {
+      "hanja": "扶",
+      "meaning": "돕다",
+      "sound": "부"
+    },
+    {
+      "hanja": "事",
+      "meaning": "일",
+      "sound": "사"
+    },
+    {
+      "hanja": "師",
+      "meaning": "스승",
+      "sound": "사"
+    },
+    {
+      "hanja": "短",
+      "meaning": "짧다",
+      "sound": "단"
+    },
+    {
+      "hanja": "協",
+      "meaning": "돕다",
+      "sound": "협"
+    },
+    {
+      "hanja": "飛",
+      "meaning": "날다",
+      "sound": "비"
+    }
   ]
 };
-let selectedUnit='', original=[], questions=[], idx=0, correct=0, wrong=[], checked=false;
-const $=id=>document.getElementById(id);
-function normalize(x){return (x||'').replace(/\s+/g,'').replace(/[,.，、]/g,',').trim();}
-function show(id){['home','mode','quiz','end'].forEach(x=>$(x).classList.add('hidden'));$(id).classList.remove('hidden');}
-function showHome(){show('home')}
-function shuffle(a){return [...a].sort(()=>Math.random()-0.5)}
-function init(){const box=$('unitButtons'); Object.keys(DATA).forEach(u=>{const b=document.createElement('button');b.className='btn secondary';b.textContent=u;b.onclick=()=>selectUnit(u);box.appendChild(b);});}
-function selectUnit(u){selectedUnit=u;original=DATA[u];$('modeTitle').textContent=u;show('mode')}
-function startAll(){selectedUnit='전체 범위'; original=Object.values(DATA).flat(); questions=shuffle(original); begin();}
-function startQuiz(random){questions=random?shuffle(original):[...original]; begin();}
-function begin(){idx=0;correct=0;wrong=[];checked=false;show('quiz');render();}
-function render(){const q=questions[idx];$('quizUnit').textContent=selectedUnit;$('count').textContent=`${idx+1} / ${questions.length}`;$('barFill').style.width=`${(idx/questions.length)*100}%`;$('hanja').textContent=q.h;$('meaningInput').value='';$('soundInput').value='';$('feedback').classList.add('hidden');$('mainBtn').textContent='정답 확인';checked=false;$('meaningInput').focus();}
-function checkAnswer(){if(checked){next();return;} const q=questions[idx]; const mOk=normalize($('meaningInput').value)===normalize(q.m); const sOk=normalize($('soundInput').value)===normalize(q.s); if(mOk&&sOk) correct++; else wrong.push(q); $('feedback').innerHTML=`<div>뜻 ${mOk?'<span class="ok">⭕</span>':'<span class="no">❌</span>'} &nbsp; 음 ${sOk?'<span class="ok">⭕</span>':'<span class="no">❌</span>'}</div><hr><b>정답</b><br>뜻: ${q.m}<br>음: ${q.s}`; $('feedback').classList.remove('hidden'); $('mainBtn').textContent='다음 문제'; checked=true;}
-function next(){idx++; if(idx>=questions.length) end(); else render();}
-function end(){show('end'); $('barFill').style.width='100%'; const score=Math.round((correct/questions.length)*100); $('score').innerHTML=`${questions.length}문제 중 ${correct}문제 정답<br><b>${score}점</b>`; if(wrong.length){$('wrongBox').classList.remove('hidden');$('retryBtn').classList.remove('hidden');$('wrongList').textContent=wrong.map(x=>x.h).join('  ');} else {$('wrongBox').classList.add('hidden');$('retryBtn').classList.add('hidden');}}
-function retryWrong(){selectedUnit='틀린 문제 다시 풀기'; questions=[...wrong]; idx=0;correct=0;wrong=[];show('quiz');render();}
+
+let selectedLesson = null;
+let currentSet = [];
+let index = 0;
+let correctCount = 0;
+let wrongItems = [];
+let answered = false;
+
+const $ = (id) => document.getElementById(id);
+
+function normalize(s) {
+  return String(s || "").replace(/\s+/g,"").replace(/[.,，、]/g,",").trim();
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i=a.length-1; i>0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+function show(id) {
+  ["home","mode","quiz","finish"].forEach(x => $(x).classList.add("hidden"));
+  $(id).classList.remove("hidden");
+}
+
+function init() {
+  const list = $("lessonList");
+  list.innerHTML = "";
+  Object.keys(DATA).forEach(lesson => {
+    const btn = document.createElement("button");
+    btn.className = "lesson-btn secondary";
+    btn.innerHTML = `<span>${lesson}</span><span class="count">${DATA[lesson].length}자</span>`;
+    btn.onclick = () => selectLesson(lesson);
+    list.appendChild(btn);
+  });
+  const total = Object.values(DATA).reduce((sum, arr)=>sum+arr.length,0);
+  $("allCount").textContent = total + "자";
+}
+
+function selectLesson(lesson) {
+  selectedLesson = lesson;
+  const title = lesson === "__ALL__" ? "전체 범위" : lesson;
+  $("modeTitle").textContent = title;
+  show("mode");
+}
+
+function startQuiz(random) {
+  const base = selectedLesson === "__ALL__" ? Object.values(DATA).flat() : DATA[selectedLesson];
+  currentSet = random ? shuffle(base) : [...base];
+  index = 0;
+  correctCount = 0;
+  wrongItems = [];
+  showQuestion();
+  show("quiz");
+}
+
+function showQuestion() {
+  answered = false;
+  const item = currentSet[index];
+  $("progress").textContent = `문제 ${index+1} / ${currentSet.length}`;
+  $("hanja").textContent = item.hanja;
+  $("meaningInput").value = "";
+  $("soundInput").value = "";
+  $("meaningInput").disabled = false;
+  $("soundInput").disabled = false;
+  $("feedback").classList.add("hidden");
+  $("feedback").innerHTML = "";
+  $("checkBtn").textContent = "정답 확인";
+  $("checkBtn").onclick = checkAnswer;
+  setTimeout(() => $("meaningInput").focus(), 50);
+}
+
+function checkAnswer() {
+  if (answered) return nextQuestion();
+  const item = currentSet[index];
+  const meaningOK = normalize($("meaningInput").value) === normalize(item.meaning);
+  const soundOK = normalize($("soundInput").value) === normalize(item.sound);
+  const ok = meaningOK && soundOK;
+  answered = true;
+  if (ok) correctCount++;
+  else wrongItems.push(item);
+
+  $("meaningInput").disabled = true;
+  $("soundInput").disabled = true;
+  $("feedback").classList.remove("hidden");
+  $("feedback").innerHTML = `
+    <div class="result">
+      <div class="${meaningOK ? "ok" : "no"}">뜻 ${meaningOK ? "⭕" : "❌"}</div>
+      <div class="${soundOK ? "ok" : "no"}">음 ${soundOK ? "⭕" : "❌"}</div>
+    </div>
+    <div class="answer-box">
+      <b>정답</b><br>
+      뜻: ${escapeHtml(item.meaning)}<br>
+      음: ${escapeHtml(item.sound)}
+    </div>`;
+  $("checkBtn").textContent = index === currentSet.length - 1 ? "결과 보기" : "다음 문제";
+  $("checkBtn").onclick = nextQuestion;
+}
+
+function nextQuestion() {
+  if (index < currentSet.length - 1) {
+    index++;
+    showQuestion();
+  } else {
+    finishQuiz();
+  }
+}
+
+function finishQuiz() {
+  const score = Math.round((correctCount / currentSet.length) * 100);
+  $("scoreText").innerHTML = `${currentSet.length}문제 중 ${correctCount}문제 정답<br>점수: ${score}점`;
+  if (wrongItems.length) {
+    $("wrongArea").innerHTML = `<h3>틀린 한자</h3><div class="wrong-list">${wrongItems.map(x => `<span class="pill">${escapeHtml(x.hanja)}</span>`).join("")}</div>`;
+    $("retryWrongBtn").classList.remove("hidden");
+  } else {
+    $("wrongArea").innerHTML = `<p class="ok" style="text-align:center;font-weight:900">모두 맞혔습니다 🎉</p>`;
+    $("retryWrongBtn").classList.add("hidden");
+  }
+  show("finish");
+}
+
+function retryWrong() {
+  currentSet = shuffle(wrongItems);
+  index = 0;
+  correctCount = 0;
+  wrongItems = [];
+  showQuestion();
+  show("quiz");
+}
+
+function goHome() { show("home"); }
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
 init();
 </script>
 </body>
