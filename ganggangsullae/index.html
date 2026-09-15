@@ -47,17 +47,64 @@ function showOnly(id){['home','drawing','result'].forEach(x=>$(x).classList.add(
 function err(t){$('msg').innerHTML=t?`<div class="error">${escapeHtml(t)}</div>`:''}
 async function loadNames(){
   if(API_URL.includes('PASTE_')){err('아직 Apps Script 웹앱 URL이 설정되지 않았습니다.');return}
-  try{const r=await fetch(API_URL+'?action=names');const d=await r.json();if(!d.ok)throw new Error();names=d.names||[];const s=$('nameSelect');names.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;s.appendChild(o)})}catch(e){err('회원 명단을 불러오지 못했습니다.')}
+  try{const r=await fetch(API_URL+'?action=names');const d=await r.json();if(!d.ok)throw new Error();names=(d.names||[]).sort((a,b)=>a.localeCompare(b,'ko-KR'));const s=$('nameSelect');names.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;s.appendChild(o)})}catch(e){err('회원 명단을 불러오지 못했습니다.')}
 }
 async function drawTarget(){
-  const name=$('nameSelect').value;if(!name){err('본인의 이름을 선택해주세요.');return}err('');$('drawBtn').disabled=true;showOnly('drawing');
-  let i=0;const timer=setInterval(()=>{$('rolling').textContent=names[Math.floor(Math.random()*names.length)]||'…';i++},80);
+  const name=$('nameSelect').value;
+  if(!name){err('본인의 이름을 선택해주세요.');return}
+  err('');
+  $('drawBtn').disabled=true;
+  showOnly('drawing');
+
+  const timer=setInterval(()=>{
+    $('rolling').textContent=names[Math.floor(Math.random()*names.length)]||'…';
+  },80);
+
+  // 추첨 연출은 무조건 1.5초 뒤 멈춥니다.
+  const stopTimer=setTimeout(()=>{
+    clearInterval(timer);
+    $('rolling').textContent='결과 확인 중…';
+  },1500);
+
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),10000);
+
   try{
-    const p=fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'reveal',name})}).then(r=>r.json());
-    const [data]=await Promise.all([p,wait(1500)]);clearInterval(timer);
-    if(!data.ok){showOnly('home');$('drawBtn').disabled=false;err(data.message||'오류가 발생했습니다.');return}
-    finalTarget=data.target;$('rolling').textContent=finalTarget;await wait(220);showResult(name,finalTarget,data.alreadySeen);
-  }catch(e){clearInterval(timer);showOnly('home');$('drawBtn').disabled=false;err('연결 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')}
+    const response=await fetch(API_URL,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({action:'reveal',name}),
+      signal:controller.signal
+    });
+    const data=await response.json();
+
+    // 서버 응답이 1.5초보다 빨라도 연출은 1.5초까지 유지합니다.
+    const elapsedPromise=wait(1500);
+    await elapsedPromise;
+    clearInterval(timer);
+    clearTimeout(stopTimer);
+    clearTimeout(timeout);
+
+    if(!data.ok){
+      showOnly('home');
+      $('drawBtn').disabled=false;
+      err(data.message||'오류가 발생했습니다.');
+      return;
+    }
+
+    finalTarget=data.target;
+    $('rolling').textContent=finalTarget;
+    await wait(220);
+    showResult(name,finalTarget,data.alreadySeen);
+  }catch(e){
+    clearInterval(timer);
+    clearTimeout(stopTimer);
+    clearTimeout(timeout);
+    showOnly('home');
+    $('drawBtn').disabled=false;
+    if(e.name==='AbortError') err('결과 확인 시간이 너무 오래 걸렸습니다. 잠시 후 다시 시도해주세요.');
+    else err('연결 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+  }
 }
 function showResult(name,target,already){showOnly('result');$('targetName').textContent=target+' 회원님!';$('actionGuide').innerHTML=`친목회(4층 교무실)에서 선물을 받아<br><b>${escapeHtml(target)} 회원님께 직접 전달해 주세요.</b>`;}
 function goHome(){showOnly('home');$('drawBtn').disabled=false;$('nameSelect').value='';err('')}
