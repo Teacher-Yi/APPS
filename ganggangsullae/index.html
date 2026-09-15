@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>선물은 돌고 돌아 강강술래</title>
+<style>
+:root{--cream:#fffaf0;--ink:#402a22;--gold:#c78b2c;--brown:#6a432f;--line:#eadcc6;--card:#fff;--moon:#ffd76b;--green:#71855b}
+*{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif;background:linear-gradient(#fff9ec,#f8efe0);color:var(--ink);min-height:100vh}.wrap{max-width:560px;margin:0 auto;padding:22px 16px 46px}.hero{text-align:center;padding:10px 0 18px}.moon{width:82px;height:82px;border-radius:50%;background:var(--moon);margin:0 auto 12px;box-shadow:0 0 0 12px rgba(255,215,107,.18)}.kicker{font-weight:850;color:var(--brown);font-size:15px}.title{font-size:31px;font-weight:950;line-height:1.25;margin:7px 0}.sub{font-size:15px;color:#7d6a5d;line-height:1.6}.card{background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:24px;padding:20px;box-shadow:0 12px 30px rgba(83,54,36,.08)}label{font-weight:900;display:block;margin:0 0 8px}select{width:100%;padding:15px 14px;border-radius:16px;border:1px solid var(--line);background:white;font-size:17px;color:var(--ink)}button{width:100%;border:0;border-radius:17px;padding:16px;margin-top:16px;background:linear-gradient(135deg,#c6882e,#8d5a31);color:white;font-size:18px;font-weight:950;cursor:pointer;box-shadow:0 9px 20px rgba(141,90,49,.18)}button:disabled{opacity:.6}.hidden{display:none!important}.center{text-align:center}.drum{font-size:21px;font-weight:900;margin-top:10px}.rolling{font-size:39px;font-weight:950;height:94px;display:flex;align-items:center;justify-content:center;border:2px dashed #dfc291;border-radius:22px;background:#fffaf1;margin:18px 0}.resultName{font-size:34px;font-weight:1000;color:#9b5d21;margin:14px 0 18px;line-height:1.3}.guide{font-size:18px;line-height:1.8;font-weight:800}.highlight{background:#fff4ce;border-radius:18px;padding:14px;margin:17px 0}.footer{font-size:14px;color:#7d6a5d;line-height:1.6}.error{background:#fff0ef;color:#9b3731;padding:12px 14px;border-radius:15px;margin-top:12px;font-weight:800}.tiny{font-size:13px;color:#8d7a6b;margin-top:12px}.petals{font-size:28px;letter-spacing:5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<section id="home">
+  <div class="hero"><div class="moon"></div><div class="kicker">🌕 친목회 추석맞이 이벤트 제1탄</div><div class="title">선물은 돌고 돌아<br>강강술래</div><div class="sub">선물과 덕담이 회원님들을 따라 한 바퀴 이어집니다.</div></div>
+  <div class="card">
+    <label for="nameSelect">본인의 이름을 선택해주세요.</label>
+    <select id="nameSelect"><option value="">이름을 선택하세요</option></select>
+    <button id="drawBtn" onclick="drawTarget()">🎁 나의 선물 전달 상대 뽑기</button>
+    <div id="msg"></div>
+    <div class="tiny">※ 결과는 본인에게 정해진 전달 상대를 보여줍니다.</div>
+  </div>
+</section>
+
+<section id="drawing" class="hidden">
+  <div class="hero"><div class="moon"></div><div class="kicker">선물은 돌고 돌아 강강술래</div></div>
+  <div class="card center"><div class="petals">🍂 🌕 🎁 🍁</div><div class="drum">두구두구… 누구일까요?</div><div id="rolling" class="rolling">?</div></div>
+</section>
+
+<section id="result" class="hidden">
+  <div class="hero"><div class="moon"></div><div class="kicker">🎊 선물 전달 상대가 정해졌습니다!</div></div>
+  <div class="card center">
+    <div style="font-size:18px;font-weight:900">회원님의 선물 전달 상대는…</div>
+    <div class="resultName" id="targetName"></div>
+    <div class="highlight guide" id="actionGuide"></div>
+    <div class="guide">선물과 함께 따뜻한 <b>덕담 한마디</b>도 건네주세요. 😊</div>
+    <div class="footer" style="margin-top:20px">🌕 <b>선물이 전달되면 우리의 강강술래가 한 칸 더 이어집니다.</b></div>
+    <button onclick="goHome()" style="background:#756b5d;box-shadow:none">결과 다시 확인하기</button>
+  </div>
+</section>
+</div>
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbx0pnXJ__QapATQaEHN0GEx3sGhS03eW-STsBn-RZlLrT_gCTILuuVplKAuPPEOQ8yo/exec";
+let names=[]; let finalTarget='';
+const $=id=>document.getElementById(id);
+function showOnly(id){['home','drawing','result'].forEach(x=>$(x).classList.add('hidden'));$(id).classList.remove('hidden')}
+function err(t){$('msg').innerHTML=t?`<div class="error">${escapeHtml(t)}</div>`:''}
+async function loadNames(){
+  if(API_URL.includes('PASTE_')){err('아직 Apps Script 웹앱 URL이 설정되지 않았습니다.');return}
+  try{const r=await fetch(API_URL+'?action=names');const d=await r.json();if(!d.ok)throw new Error();names=d.names||[];const s=$('nameSelect');names.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;s.appendChild(o)})}catch(e){err('회원 명단을 불러오지 못했습니다.')}
+}
+async function drawTarget(){
+  const name=$('nameSelect').value;if(!name){err('본인의 이름을 선택해주세요.');return}err('');$('drawBtn').disabled=true;showOnly('drawing');
+  let i=0;const timer=setInterval(()=>{$('rolling').textContent=names[Math.floor(Math.random()*names.length)]||'…';i++},80);
+  try{
+    const p=fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'reveal',name})}).then(r=>r.json());
+    const [data]=await Promise.all([p,wait(1500)]);clearInterval(timer);
+    if(!data.ok){showOnly('home');$('drawBtn').disabled=false;err(data.message||'오류가 발생했습니다.');return}
+    finalTarget=data.target;$('rolling').textContent=finalTarget;await wait(220);showResult(name,finalTarget,data.alreadySeen);
+  }catch(e){clearInterval(timer);showOnly('home');$('drawBtn').disabled=false;err('연결 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')}
+}
+function showResult(name,target,already){showOnly('result');$('targetName').textContent=target+' 회원님!';$('actionGuide').innerHTML=`친목회(4층 교무실)에서 선물을 받아<br><b>${escapeHtml(target)} 회원님께 직접 전달해 주세요.</b>`;}
+function goHome(){showOnly('home');$('drawBtn').disabled=false;$('nameSelect').value='';err('')}
+function wait(ms){return new Promise(r=>setTimeout(r,ms))}
+function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+loadNames();
+</script>
+</body></html>
