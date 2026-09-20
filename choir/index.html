@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="theme-color" content="#f6f7fb" />
-<title>성가대 좌석 배치 v4</title>
+<title>성가대 좌석 배치</title>
 <style>
   :root{
     --bg:#f6f7fb; --card:#ffffff; --ink:#171717; --muted:#666; --line:#d9dde7;
@@ -90,7 +90,6 @@
   </div>
 
   <div class="toolbar">
-    <button class="ghost" id="preset920">9/20 검증</button>
     <button class="ghost" id="clear">결석 초기화</button>
     <button class="accent" id="refreshRoster">명단 새로고침</button>
     <a class="sheetlink" href="https://docs.google.com/spreadsheets/d/1tcGy3NBj1KVh2TN1ccjqVjRFkPw-ll7aIPdM74-NVmI/edit?ouid=117291964473012813284" target="_blank" rel="noopener">구글시트 열기</a>
@@ -203,23 +202,97 @@ function header(title){const d=fmtDate(),abs=absentText(),size=Math.max(11,Math.
 function frame(){let s='';for(let y=60;y<=500;y+=110)s+=svgEl('line',{x1:20,y1:y,x2:1004,y2:y,stroke:'#eceff4'});return s}
 function renderGroup(arr,x0,y){let s='';arr.forEach((it,i)=>s+=nameCard(it[0],it[1],x0+i*46,y,44,82));return s}
 function rowLayoutSvg(title,id,rows,offsets={}){let s=`<svg id="${id}" viewBox="0 0 1024 520" xmlns="http://www.w3.org/2000/svg">${header(title)}${frame()}`;for(let i=1;i<=4;i++){const y=78+(i-1)*110,arr=rows[i],w=Math.max(0,arr.length*46-2);let x=512-w/2+(offsets[i]||0);s+=renderGroup(arr,x,y)}return s+'</svg>'}
-function makePractice(){let s=`<svg id="practice" viewBox="0 0 1024 520" xmlns="http://www.w3.org/2000/svg">${header('연습실 좌석 배치')}${frame()}`;for(let i=1;i<=4;i++){const y=78+(i-1)*110,base=practiceRowsBase[i],w=Math.max(0,base.length*46-2),x=512-w/2;base.forEach((it,k)=>{if(!absent.has(it[0]))s+=nameCard(it[0],it[1],x+k*46,y,44,82)})}return s+'</svg>'}
-function makeSplit(rows){const sp=splitRows(rows);let s=`<svg id="split" viewBox="0 0 1024 520" xmlns="http://www.w3.org/2000/svg">${header('본당 나눠 선 대형')}${frame()}`;for(let i=1;i<=4;i++){const y=78+(i-1)*110,L=sp[i].left,R=sp[i].right,lw=Math.max(0,L.length*46-2),rw=Math.max(0,R.length*46-2),lx=330-lw/2,rx=720-rw/2;s+=renderGroup(L,lx,y)+renderGroup(R,rx,y)}return s+'</svg>'}
+function bench(x,y,w,h=88){return svgEl('rect',{x,y,width:w,height:h,rx:8,fill:'#f7f2e9',stroke:'#9b8f7d','stroke-width':2})}
+function makePractice(){
+  // 연습실은 긴 장의자별 고정석. 결석자는 자리를 당기지 않고 명패만 비운다.
+  const groups={
+    1:[5,5,4],
+    2:[5,5,4],
+    3:[3,5,6],
+    4:[4,3,4]
+  };
+  let s=`<svg id="practice" viewBox="0 0 1024 520" xmlns="http://www.w3.org/2000/svg">${header('연습실 좌석 배치')}${frame()}`;
+  for(let row=1;row<=4;row++){
+    const y=78+(row-1)*110, base=practiceRowsBase[row]||[], sizes=groups[row];
+    const gap=24, cardW=44, step=46, benchPad=8;
+    const benchWidths=sizes.map(n=>n*step-2+benchPad*2), total=benchWidths.reduce((a,b)=>a+b,0)+gap*(sizes.length-1);
+    let bx=512-total/2, k=0;
+    sizes.forEach((n,gi)=>{
+      const bw=benchWidths[gi]; s+=bench(bx,y-3,bw,88);
+      for(let j=0;j<n && k<base.length;j++,k++){
+        const it=base[k]; if(!absent.has(it[0]))s+=nameCard(it[0],it[1],bx+benchPad+j*step,y,cardW,82);
+      }
+      bx+=bw+gap;
+    });
+  }
+  return s+'</svg>'
+}
+function makeSplit(rows){
+  // 중앙의 빈 공간을 기준으로 안쪽부터 정렬: 왼쪽 묶음은 오른쪽 정렬, 오른쪽 묶음은 왼쪽 정렬.
+  const sp=splitRows(rows), gap=86, center=512, leftEdge=center-gap/2, rightEdge=center+gap/2;
+  let s=`<svg id="split" viewBox="0 0 1024 520" xmlns="http://www.w3.org/2000/svg">${header('본당 나눠 선 대형')}${frame()}`;
+  s+=svgEl('line',{x1:center,y1:65,x2:center,y2:500,stroke:'#e2e5eb','stroke-width':2,'stroke-dasharray':'6 7'});
+  for(let i=1;i<=4;i++){
+    const y=78+(i-1)*110,L=sp[i].left,R=sp[i].right,lw=Math.max(0,L.length*46-2);
+    const lx=leftEdge-lw, rx=rightEdge;
+    s+=renderGroup(L,lx,y)+renderGroup(R,rx,y);
+  }
+  return s+'</svg>'
+}
 function arrow(x,y,dir){return svgEl('text',{x,y,'font-size':54,fill:'#777','font-family':'Arial'},dir==='left'?'←':'→')}
-function makeCombined(rows){let s=`<svg id="combined" viewBox="0 0 1024 520" xmlns="http://www.w3.org/2000/svg">${header('본당 합쳐 선 대형')}${frame()}`;for(let i=1;i<=4;i++){const y=78+(i-1)*110,arr=rows[i],w=Math.max(0,arr.length*46-2);let x=512-w/2;if(i===2)x+=8;if(i===4)x+=18;s+=renderGroup(arr,x,y);if(i===2)s+=arrow(915,y+58,'left');if(i===4)s+=arrow(915,y+58,'left')}return s+'</svg>'}
+function makeCombined(rows){
+  let s=`<svg id="combined" viewBox="0 0 1024 520" xmlns="http://www.w3.org/2000/svg">${header('본당 합쳐 선 대형')}${frame()}`;
+  for(let i=1;i<=4;i++){
+    const y=78+(i-1)*110,arr=rows[i],w=Math.max(0,arr.length*46-2);let x=512-w/2;
+    // 1열은 기준선. 엇갈려 서기 위해 2·4열이 나눠 선 대형에서 합쳐질 때 오른쪽으로 이동한다.
+    if(i===2)x+=8;if(i===4)x+=18;s+=renderGroup(arr,x,y);
+    if(i===2||i===4)s+=arrow(28,y+58,'right');
+  }
+  return s+'</svg>'
+}
 function activeCombined(rows,row,part){return rows[row].filter(x=>x[1]===part).map(x=>[...x])}
 function makeSeated(rows){
-  const A1=activeCombined(rows,1,'A'),A2=activeCombined(rows,2,'A'),B3=activeCombined(rows,3,'B'),B4=activeCombined(rows,4,'B');
-  let b4=[...B4],need1=Math.max(0,8-A1.length),take1=b4.splice(Math.max(0,b4.length-need1),need1),need2=Math.max(0,8-A2.length),take2=b4.splice(0,need2);
-  const right=[A1.concat(take1),A2.concat(take2),B3.concat(b4),[]];
-  const S1=activeCombined(rows,1,'S'),S2=activeCombined(rows,2,'S');let M=activeCombined(rows,3,'M'),T=activeCombined(rows,4,'T');
-  const m1=M.splice(0,Math.max(0,8-S1.length)),m2=M.splice(0,Math.max(0,8-S2.length));
-  const left1=m1.concat(S1),left2=m2.concat(S2);let m3=M.splice(0,Math.min(8,M.length)),t3=T.splice(0,Math.max(0,8-m3.length)),left3=t3.concat(m3),left4=T.concat(M);const left=[left1,left2,left3,left4];
-  let s=`<svg id="seated" viewBox="0 0 1024 520" xmlns="http://www.w3.org/2000/svg">${header('본당 좌석 배치')}${frame()}`;
-  for(let i=0;i<4;i++){const y=78+i*110;s+=renderGroup(left[i],85,y)+renderGroup(right[i],550,y)}
-  s+=svgEl('rect',{x:493,y:300,width:48,height:84,rx:7,fill:'#cbb8dd',stroke:'#333'})+svgEl('text',{x:517,y:328,'text-anchor':'middle','font-size':19,'font-weight':'700'},'목')+svgEl('text',{x:517,y:350,'text-anchor':'middle','font-size':19,'font-weight':'700'},'사')+svgEl('text',{x:517,y:372,'text-anchor':'middle','font-size':19,'font-weight':'700'},'님');return s+'</svg>'
-}
+  // 좌석은 실제 장의자에 앉는 모습. 오른쪽 블록은 A 뒤에 B, 왼쪽 블록은 S/M/T.
+  const A1=activeCombined(rows,1,'A'),A2=activeCombined(rows,2,'A');
+  const B3=activeCombined(rows,3,'B'),B4=activeCombined(rows,4,'B');
+  const S1=activeCombined(rows,1,'S'),S2=activeCombined(rows,2,'S');
+  let M=activeCombined(rows,3,'M'),T=activeCombined(rows,4,'T');
 
+  // 왼쪽 좌석 블록(S/M/T)은 기존 동선 규칙 유지.
+  const m1=M.splice(0,Math.max(0,8-S1.length)),m2=M.splice(0,Math.max(0,8-S2.length));
+  const left=[m1.concat(S1),m2.concat(S2)];
+  let m3=M.splice(0,Math.min(8,M.length)),t3=T.splice(0,Math.max(0,8-m3.length));
+  left.push(t3.concat(m3)); left.push(T.concat(M));
+
+  // 오른쪽 좌석 블록: A를 앞쪽 두 줄에 두고 B를 뒤쪽에 둔다.
+  // 윤준기·이정헌·김동욱은 오른쪽 끝(김지현~김민호 뒤)에 배치한다.
+  const specialNames=['윤준기','이정헌','김동욱'];
+  const allB=[...B3,...B4], special=specialNames.map(n=>allB.find(x=>x[0]===n)).filter(Boolean);
+  const restB=allB.filter(x=>!specialNames.includes(x[0]));
+  const right=[A1,A2,restB,special];
+
+  const cardW=44,step=46,seatW=8*step+18,leftX=70,rightX=566;
+  let s=`<svg id="seated" viewBox="0 0 1024 520" xmlns="http://www.w3.org/2000/svg">${header('본당 좌석 배치')}${frame()}`;
+  for(let i=0;i<4;i++){
+    const y=78+i*110;
+    s+=bench(leftX-8,y-3,seatW,88)+bench(rightX-8,y-3,seatW,88);
+    s+=renderGroup(left[i],leftX,y);
+    if(i<3)s+=renderGroup(right[i],rightX,y);
+    else{
+      // 뒤쪽 오른쪽 끝에 세 명을 붙인다. 앞줄의 김지현~김민호 뒤쪽 영역을 의도한다.
+      const rx=rightX+seatW-18-right[i].length*step;
+      s+=renderGroup(right[i],rx,y);
+    }
+  }
+  // 목사님은 한정희 바로 뒤: 한정희의 오른쪽 블록 좌표를 찾아 같은 x에 표시한다.
+  const hanIdx=A2.findIndex(x=>x[0]==='한정희');
+  const pastorX=hanIdx>=0?rightX+hanIdx*step:rightX+step;
+  const py=78+3*110;
+  s+=svgEl('rect',{x:pastorX,y:py,width:44,height:82,rx:7,fill:'#cbb8dd',stroke:'#333','stroke-width':1})+
+     svgEl('text',{x:pastorX+22,y:py+31,'text-anchor':'middle','font-size':17,'font-weight':'700'},'목사')+
+     svgEl('text',{x:pastorX+22,y:py+55,'text-anchor':'middle','font-size':17,'font-weight':'700'},'님');
+  return s+'</svg>'
+}
 function buildControls(){
   const box=document.getElementById('parts');box.innerHTML='';const members=allMembers();
   for(const p of ['S','M','A','T','B']){const d=document.createElement('div');d.className='partbox';d.innerHTML=`<h3>${p} ${LABEL[p]}</h3><div class="names"></div>`;const n=d.querySelector('.names');members.filter(x=>x.part===p).forEach(m=>{const b=document.createElement('button');b.type='button';b.className='namebtn';b.dataset.name=m.name;b.textContent=m.name;b.style.background=COLORS[p];b.addEventListener('click',()=>{absent.has(m.name)?absent.delete(m.name):absent.add(m.name);update()});n.appendChild(b)});box.appendChild(d)}
@@ -235,7 +308,6 @@ function downloadSvg(id,prefix){
 function init(){
   const now=new Date(),local=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);document.getElementById('date').value=local;
   document.getElementById('date').addEventListener('change',update);
-  document.getElementById('preset920').addEventListener('click',()=>{absent.clear();['김다영','홍은희','문은주','이광호','양태명'].forEach(n=>{if(getMember(n))absent.add(n)});document.getElementById('date').value='2026-09-20';update();document.getElementById('parts').scrollIntoView({behavior:'smooth',block:'start'})});
   document.getElementById('clear').addEventListener('click',()=>{absent.clear();update()});
   document.getElementById('refreshRoster').addEventListener('click',()=>loadRosterFromSheet(true));
   document.querySelectorAll('.savebtn').forEach(btn=>btn.addEventListener('click',()=>downloadSvg(btn.dataset.svg,btn.dataset.prefix)));
