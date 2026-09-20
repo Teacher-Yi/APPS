@@ -107,7 +107,7 @@
     <span><i class="dot" style="background:var(--B)"></i>B 베이스</span>
   </div>
 
-  <div class="mobile-note">결석자를 모두 선택한 뒤, 배치도에서 이름표를 손가락으로 끌어 미세 조정할 수 있습니다. 합쳐 선 대형의 2~4열 화살표는 눌러서 ← · → 순으로 바꿀 수 있습니다.</div>
+  <div class="mobile-note">결석자를 모두 선택한 뒤, 나눠 선·합쳐 선·본당 좌석 배치에서 이름표를 끌어 원하는 칸에 놓을 수 있습니다. 놓으면 격자에 붙고 다른 이름표가 옆으로 밀립니다. 합쳐 선 대형의 2~4열 화살표는 눌러서 ← · → 순으로 바꿀 수 있습니다.</div>
   <div id="syncStatus" class="syncstatus">구글시트 명단을 불러오는 중…</div>
   <div id="parts" class="parts"></div>
   <div id="log" class="log">결석자를 선택하면 자동으로 배치합니다.</div>
@@ -115,7 +115,7 @@
   <div class="grid">
     <section class="panel"><div class="panelhead"><h2>연습실 좌석 배치</h2><button class="primary savebtn" data-svg="practice" data-prefix="연습실_좌석_배치">PNG 저장</button></div><div class="svgwrap" id="practiceWrap"></div><div class="hint">고정좌석은 그대로 두고 결석자 명패만 비웁니다.</div></section>
     <section class="panel"><div class="panelhead"><h2>본당 나눠 선 대형</h2><button class="primary savebtn" data-svg="split" data-prefix="본당_나눠_선_대형">PNG 저장</button></div><div class="svgwrap" id="splitWrap"></div></section>
-    <section class="panel"><div class="panelhead"><h2>본당 합쳐 선 대형</h2><button class="primary savebtn" data-svg="combined" data-prefix="본당_합쳐_선_대형">PNG 저장</button></div><div class="svgwrap" id="combinedWrap"></div><div class="hint">자동 초안 후 이름표를 드래그해 조정할 수 있습니다. 2~4열 화살표는 클릭해 방향을 바꿀 수 있습니다.</div></section>
+    <section class="panel"><div class="panelhead"><h2>본당 합쳐 선 대형</h2><button class="primary savebtn" data-svg="combined" data-prefix="본당_합쳐_선_대형">PNG 저장</button></div><div class="svgwrap" id="combinedWrap"></div><div class="hint">자동 초안 후 이름표를 원하는 자리 사이에 끌어 놓으면 격자에 붙고 다른 이름표가 자동으로 밀립니다. 2~4열 화살표는 클릭해 방향을 바꿀 수 있습니다.</div></section>
     <section class="panel"><div class="panelhead"><h2>본당 좌석 배치</h2><button class="primary savebtn" data-svg="seated" data-prefix="본당_좌석_배치">PNG 저장</button></div><div class="svgwrap" id="seatedWrap"></div><div class="hint">알토 옆 빈자리는 4열 베이스가 채우고, 목사님은 오른쪽 좌석 블록의 왼쪽 끝에 배치합니다.</div></section>
   </div>
 </div>
@@ -137,9 +137,10 @@ let rowsBase=cloneRows(INITIAL_ROWS);
 let practiceRowsBase=cloneRows(INITIAL_ROWS);
 let rosterRecords=[];
 const absent=new Set();
-const manualPos={practice:{},split:{},combined:{},seated:{}};
+const manualLayout={split:null,combined:null,seated:null};
+let currentAutoRows=null;
 const arrowState={2:'right',3:'dot',4:'right'};
-function resetManualPositions(){for(const k of Object.keys(manualPos))manualPos[k]={};}
+function resetManualPositions(){manualLayout.split=null;manualLayout.combined=null;manualLayout.seated=null;}
 
 function cloneRows(rows){return {1:(rows[1]||[]).map(x=>[...x]),2:(rows[2]||[]).map(x=>[...x]),3:(rows[3]||[]).map(x=>[...x]),4:(rows[4]||[]).map(x=>[...x])}}
 function allMembers(){return Object.values(rowsBase).flat().map(([name,part])=>({name,part}))}
@@ -204,10 +205,10 @@ function splitRows(rows){const out={};for(let i=1;i<=4;i++){const n=rows[i].leng
 
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function svgEl(tag,attrs={},text=''){const a=Object.entries(attrs).map(([k,v])=>`${k}="${String(v).replace(/"/g,'&quot;')}"`).join(' ');return`<${tag}${a?' '+a:''}>${text}</${tag}>`}
-function nameCard(name,part,x,y,w=44,h=82){const chars=[...name],fs=name.length>=4?18:21;let t='',start=y+(h-(chars.length*fs))/2+fs-2;chars.forEach((c,i)=>{t+=svgEl('text',{x:x+w/2,y:start+i*fs,'text-anchor':'middle','font-size':fs,'font-weight':'700','font-family':'Arial, Noto Sans KR, sans-serif','pointer-events':'none'},esc(c))});return svgEl('g',{'class':'person-card','data-name':name},svgEl('rect',{x,y,width:w,height:h,rx:7,fill:COLORS[part],stroke:'#333','stroke-width':1})+t)}
+function nameCard(name,part,x,y,w=44,h=82,lane=''){const chars=[...name],fs=name.length>=4?18:21;let t='',start=y+(h-(chars.length*fs))/2+fs-2;chars.forEach((c,i)=>{t+=svgEl('text',{x:x+w/2,y:start+i*fs,'text-anchor':'middle','font-size':fs,'font-weight':'700','font-family':'Arial, Noto Sans KR, sans-serif','pointer-events':'none'},esc(c))});return svgEl('g',{'class':'person-card','data-name':name,'data-lane':lane},svgEl('rect',{x,y,width:w,height:h,rx:7,fill:COLORS[part],stroke:'#333','stroke-width':1})+t)}
 function header(title){const d=fmtDate(),abs=absentText(),size=Math.max(11,Math.min(16,850/(abs.length||1)));return svgEl('text',{x:18,y:38,'font-size':29,'font-weight':'800','font-family':'Arial, Noto Sans KR, sans-serif'},`${title}(${d})`)+svgEl('rect',{x:560,y:12,width:450,height:38,rx:8,fill:'#fff1bf'})+svgEl('text',{x:785,y:37,'text-anchor':'middle','font-size':size,'font-weight':'600','font-family':'Arial, Noto Sans KR, sans-serif'},esc(abs))}
 function frame(){let s='';for(let y=60;y<=500;y+=110)s+=svgEl('line',{x1:20,y1:y,x2:1004,y2:y,stroke:'#eceff4'});return s}
-function renderGroup(arr,x0,y){let s='';arr.forEach((it,i)=>s+=nameCard(it[0],it[1],x0+i*46,y,44,82));return s}
+function renderGroup(arr,x0,y,lane=''){let s='';arr.forEach((it,i)=>s+=nameCard(it[0],it[1],x0+i*46,y,44,82,lane));return s}
 function rowLayoutSvg(title,id,rows,offsets={}){let s=`<svg id="${id}" viewBox="0 0 1024 520" xmlns="http://www.w3.org/2000/svg">${header(title)}${frame()}`;for(let i=1;i<=4;i++){const y=78+(i-1)*110,arr=rows[i],w=Math.max(0,arr.length*46-2);let x=512-w/2+(offsets[i]||0);s+=renderGroup(arr,x,y)}return s+'</svg>'}
 function bench(x,y,w,h=88){return svgEl('rect',{x,y,width:w,height:h,rx:8,fill:'#f7f2e9',stroke:'#9b8f7d','stroke-width':2})}
 function makePractice(){
@@ -234,111 +235,149 @@ function makePractice(){
   }
   return s+'</svg>'
 }
+function splitLayoutFromRows(rows){
+  const sp=splitRows(rows),out={};
+  for(let i=1;i<=4;i++){out[`s${i}L`]=sp[i].left.map(x=>[...x]);out[`s${i}R`]=sp[i].right.map(x=>[...x]);}
+  return out;
+}
 function makeSplit(rows){
-  // 중앙의 빈 공간을 기준으로 안쪽부터 정렬: 왼쪽 묶음은 오른쪽 정렬, 오른쪽 묶음은 왼쪽 정렬.
-  const sp=splitRows(rows), gap=86, center=512, leftEdge=center-gap/2, rightEdge=center+gap/2;
+  const lay=manualLayout.split||splitLayoutFromRows(rows), gap=86, center=512, leftEdge=center-gap/2, rightEdge=center+gap/2;
   let s=`<svg id="split" viewBox="0 0 1024 520" xmlns="http://www.w3.org/2000/svg">${header('본당 나눠 선 대형')}${frame()}`;
   s+=svgEl('line',{x1:center,y1:65,x2:center,y2:500,stroke:'#e2e5eb','stroke-width':2,'stroke-dasharray':'6 7'});
   for(let i=1;i<=4;i++){
-    const y=78+(i-1)*110,L=sp[i].left,R=sp[i].right,lw=Math.max(0,L.length*46-2);
+    const y=78+(i-1)*110,L=lay[`s${i}L`]||[],R=lay[`s${i}R`]||[],lw=Math.max(0,L.length*46-2);
     const lx=leftEdge-lw, rx=rightEdge;
-    s+=renderGroup(L,lx,y)+renderGroup(R,rx,y);
+    s+=renderGroup(L,lx,y,`s${i}L`)+renderGroup(R,rx,y,`s${i}R`);
   }
   return s+'</svg>'
 }
 function arrowSymbol(state){return state==='left'?'←':state==='right'?'→':'·'}
 function arrowControl(row,x,y){const state=arrowState[row]||'dot';return svgEl('g',{'class':'arrowctl','data-row':row},svgEl('text',{x,y,'font-size':state==='dot'?58:54,fill:'#777','font-family':'Arial','font-weight':'500'},arrowSymbol(state)))}
+function combinedLayoutFromRows(rows){const out={};for(let i=1;i<=4;i++)out[`c${i}`]=(rows[i]||[]).map(x=>[...x]);return out}
 function makeCombined(rows){
+  const lay=manualLayout.combined||combinedLayoutFromRows(rows);
   let s=`<svg id="combined" viewBox="0 0 1024 520" xmlns="http://www.w3.org/2000/svg">${header('본당 합쳐 선 대형')}${frame()}`;
   for(let i=1;i<=4;i++){
-    const y=78+(i-1)*110,arr=rows[i],w=Math.max(0,arr.length*46-2);let x=512-w/2;
-    if(i===2)x+=8;if(i===4)x+=18;s+=renderGroup(arr,x,y);
+    const y=78+(i-1)*110,arr=lay[`c${i}`]||[],w=Math.max(0,arr.length*46-2);let x=512-w/2;
+    if(i===2)x+=8;if(i===4)x+=18;s+=renderGroup(arr,x,y,`c${i}`);
     if(i>=2&&i<=4)s+=arrowControl(i,28,y+58);
   }
   return s+'</svg>'
 }
 function activeCombined(rows,row,part){return rows[row].filter(x=>x[1]===part).map(x=>[...x])}
-function makeSeated(rows){
-  // 실제 본당 장의자 구조: 왼쪽 블록은 S/M/T 4줄, 오른쪽 블록은 A/B 3줄.
+function seatedLayoutFromRows(rows){
   const A1=activeCombined(rows,1,'A'),A2=activeCombined(rows,2,'A');
   const S1=activeCombined(rows,1,'S'),S2=activeCombined(rows,2,'S');
   let M=activeCombined(rows,3,'M'),T=activeCombined(rows,4,'T');
-
-  // 왼쪽 좌석 블록(S/M/T): 기존 동선 규칙 유지.
   const m1=M.splice(0,Math.max(0,8-S1.length)),m2=M.splice(0,Math.max(0,8-S2.length));
   const left=[m1.concat(S1),m2.concat(S2)];
   let m3=M.splice(0,Math.min(8,M.length)),t3=T.splice(0,Math.max(0,8-m3.length));
   left.push(t3.concat(m3)); left.push(T.concat(M));
-
-  // 오른쪽 좌석 블록(A/B): 알토 옆 빈자리를 '기본 4열 베이스'가 먼저 채운다.
-  // 9/20 기준: 반주미 옆 김동욱·전철, 김지현 옆 김민호.
   const activeName=new Set(Object.values(rows).flat().map(x=>x[0]));
   const base4Bass=(rowsBase[4]||[]).filter(x=>x[1]==='B'&&activeName.has(x[0])).map(x=>[...x]);
   const gap1=Math.max(0,8-A1.length),gap2=Math.max(0,8-A2.length);
   const fill2=base4Bass.splice(0,Math.min(gap2,base4Bass.length));
   const fill1=base4Bass.splice(0,Math.min(gap1,base4Bass.length));
   const right1=A1.concat(fill1), right2=A2.concat(fill2);
-
-  // 나머지 베이스(기본 3열 B + 4열에서 남은 B)는 목사님과 같은 셋째 줄의 오른쪽 끝에 둔다.
   const usedB=new Set([...fill1,...fill2].map(x=>x[0]));
-  const allB=Object.values(rows).flat().filter(x=>x[1]==='B'&&!usedB.has(x[0]));
-  const right3=allB;
-
+  const right3=Object.values(rows).flat().filter(x=>x[1]==='B'&&!usedB.has(x[0]));
+  return {l1:left[0],l2:left[1],l3:left[2],l4:left[3],r1:right1,r2:right2,r3:right3};
+}
+function makeSeated(rows){
+  const lay=manualLayout.seated||seatedLayoutFromRows(rows);
   const cardW=44,step=46,seatW=8*step+18,leftX=70,rightX=566;
   let s=`<svg id="seated" viewBox="0 0 1024 520" xmlns="http://www.w3.org/2000/svg">${header('본당 좌석 배치')}${frame()}`;
-  // 왼쪽 블록 4줄
-  for(let i=0;i<4;i++){
-    const y=78+i*110;
-    s+=bench(leftX-8,y-3,seatW,88)+renderGroup(left[i],leftX,y);
+  for(let i=1;i<=4;i++){
+    const y=78+(i-1)*110,lane=`l${i}`,arr=lay[lane]||[];
+    s+=bench(leftX-8,y-3,seatW,88)+renderGroup(arr,leftX,y,lane);
   }
-  // 오른쪽 블록 3줄만
-  for(let i=0;i<3;i++){
-    const y=78+i*110;
+  for(let i=1;i<=3;i++){
+    const y=78+(i-1)*110,lane=`r${i}`,arr=lay[lane]||[];
     s+=bench(rightX-8,y-3,seatW,88);
-    if(i===0)s+=renderGroup(right1,rightX,y);
-    if(i===1)s+=renderGroup(right2,rightX,y);
-    if(i===2){
-      // 목사님은 왼쪽 끝, 베이스는 오른쪽 끝. 사이 공간은 비운다.
-      const py=y;
-      s+=svgEl('g',{'class':'pastor-card'},svgEl('rect',{x:rightX,y:py,width:44,height:82,rx:7,fill:'#cbb8dd',stroke:'#333','stroke-width':1})+
-        svgEl('text',{x:rightX+22,y:py+31,'text-anchor':'middle','font-size':17,'font-weight':'700','pointer-events':'none'},'목사')+
-        svgEl('text',{x:rightX+22,y:py+55,'text-anchor':'middle','font-size':17,'font-weight':'700','pointer-events':'none'},'님'));
-      const rx=rightX+seatW-18-right3.length*step;
-      s+=renderGroup(right3,rx,y);
+    if(i<3)s+=renderGroup(arr,rightX,y,lane);
+    else{
+      s+=svgEl('g',{'class':'pastor-card'},svgEl('rect',{x:rightX,y,width:44,height:82,rx:7,fill:'#cbb8dd',stroke:'#333','stroke-width':1})+
+        svgEl('text',{x:rightX+22,y:y+31,'text-anchor':'middle','font-size':17,'font-weight':'700','pointer-events':'none'},'목사')+
+        svgEl('text',{x:rightX+22,y:y+55,'text-anchor':'middle','font-size':17,'font-weight':'700','pointer-events':'none'},'님'));
+      const rx=rightX+seatW-18-arr.length*step;
+      s+=renderGroup(arr,rx,y,lane);
     }
   }
   return s+'</svg>'
 }
 function svgPoint(svg,clientX,clientY){const pt=svg.createSVGPoint();pt.x=clientX;pt.y=clientY;return pt.matrixTransform(svg.getScreenCTM().inverse())}
-function applyManualPositions(){
-  for(const view of ['practice','split','combined','seated']){
-    const svg=document.getElementById(view);if(!svg)continue;
-    svg.querySelectorAll('.person-card').forEach(g=>{const name=g.dataset.name,pos=manualPos[view][name];if(pos)g.setAttribute('transform',`translate(${pos.dx} ${pos.dy})`);else g.removeAttribute('transform')});
-  }
+function cloneLayout(lay){const out={};for(const [k,v] of Object.entries(lay))out[k]=(v||[]).map(x=>[...x]);return out}
+function ensureManualLayout(view){
+  if(manualLayout[view])return manualLayout[view];
+  if(!currentAutoRows)return null;
+  manualLayout[view]=view==='combined'?combinedLayoutFromRows(currentAutoRows):view==='split'?splitLayoutFromRows(currentAutoRows):seatedLayoutFromRows(currentAutoRows);
+  return manualLayout[view];
 }
-function bindDragForSvg(view){
+function laneForPoint(view,p){
+  const row=Math.max(1,Math.min(4,Math.floor((p.y-78+55)/110)+1));
+  if(view==='combined')return `c${row}`;
+  if(view==='split')return `s${row}${p.x<512?'L':'R'}`;
+  if(view==='seated'){
+    if(p.x<512)return `l${row}`;
+    return `r${Math.max(1,Math.min(3,row))}`;
+  }
+  return null;
+}
+function indexForPoint(svg,lane,p,dragName){
+  const cards=[...svg.querySelectorAll(`.person-card[data-lane="${lane}"]`)].filter(g=>g.dataset.name!==dragName);
+  for(let i=0;i<cards.length;i++){
+    const b=cards[i].getBBox();
+    if(p.x<b.x+b.width/2)return i;
+  }
+  return cards.length;
+}
+function commitSortedDrop(view,name,p){
+  const lay=ensureManualLayout(view);if(!lay)return;
+  let sourceLane=null,sourceIndex=-1,item=null;
+  for(const [k,arr] of Object.entries(lay)){const i=arr.findIndex(x=>x[0]===name);if(i>=0){sourceLane=k;sourceIndex=i;item=arr[i];break}}
+  if(!item)return;
+  const svg=document.getElementById(view),targetLane=laneForPoint(view,p);if(!targetLane||!lay[targetLane])return;
+  let idx=indexForPoint(svg,targetLane,p,name);
+  lay[sourceLane].splice(sourceIndex,1);
+  if(sourceLane===targetLane&&sourceIndex<idx)idx--;
+  idx=Math.max(0,Math.min(idx,lay[targetLane].length));
+  if(view==='seated'&&sourceLane!==targetLane&&lay[targetLane].length>=8){
+    lay[targetLane].splice(idx,0,item);
+    const overflow=lay[targetLane].pop();
+    if(overflow&&overflow[0]!==item[0])lay[sourceLane].splice(Math.min(sourceIndex,lay[sourceLane].length),0,overflow);
+    else if(overflow&&overflow[0]===item[0])lay[sourceLane].splice(Math.min(sourceIndex,lay[sourceLane].length),0,item);
+  }else lay[targetLane].splice(idx,0,item);
+}
+function rerenderView(view){
+  if(!currentAutoRows)return;
+  if(view==='combined')document.getElementById('combinedWrap').innerHTML=makeCombined(currentAutoRows);
+  if(view==='split')document.getElementById('splitWrap').innerHTML=makeSplit(currentAutoRows);
+  if(view==='seated')document.getElementById('seatedWrap').innerHTML=makeSeated(currentAutoRows);
+  bindManualControls();
+}
+function bindSortForSvg(view){
   const svg=document.getElementById(view);if(!svg)return;
   svg.querySelectorAll('.person-card').forEach(g=>{
     g.addEventListener('pointerdown',e=>{
       if(e.button!==undefined&&e.button!==0)return;
       e.preventDefault();g.setPointerCapture?.(e.pointerId);g.classList.add('dragging');
-      const name=g.dataset.name,p0=svgPoint(svg,e.clientX,e.clientY),base=manualPos[view][name]||{dx:0,dy:0};
-      const move=ev=>{ev.preventDefault();const p=svgPoint(svg,ev.clientX,ev.clientY),dx=base.dx+(p.x-p0.x),dy=base.dy+(p.y-p0.y);g.setAttribute('transform',`translate(${dx} ${dy})`);manualPos[view][name]={dx,dy}};
-      const up=ev=>{g.classList.remove('dragging');try{g.releasePointerCapture?.(ev.pointerId)}catch{};g.removeEventListener('pointermove',move);g.removeEventListener('pointerup',up);g.removeEventListener('pointercancel',up)};
+      const p0=svgPoint(svg,e.clientX,e.clientY);let last=p0;
+      const move=ev=>{ev.preventDefault();const p=svgPoint(svg,ev.clientX,ev.clientY);last=p;g.setAttribute('transform',`translate(${p.x-p0.x} ${p.y-p0.y})`)};
+      const up=ev=>{g.classList.remove('dragging');try{g.releasePointerCapture?.(ev.pointerId)}catch{};g.removeEventListener('pointermove',move);g.removeEventListener('pointerup',up);g.removeEventListener('pointercancel',up);commitSortedDrop(view,g.dataset.name,last);rerenderView(view)};
       g.addEventListener('pointermove',move);g.addEventListener('pointerup',up);g.addEventListener('pointercancel',up);
     });
   });
 }
 function bindManualControls(){
-  applyManualPositions();
-  for(const v of ['practice','split','combined','seated'])bindDragForSvg(v);
-  const c=document.getElementById('combined');if(c)c.querySelectorAll('.arrowctl').forEach(g=>g.addEventListener('click',()=>{const row=Number(g.dataset.row),cycle=['left','dot','right'],i=cycle.indexOf(arrowState[row]||'dot');arrowState[row]=cycle[(i+1)%cycle.length];update()}));
+  for(const v of ['split','combined','seated'])bindSortForSvg(v);
+  const c=document.getElementById('combined');if(c)c.querySelectorAll('.arrowctl').forEach(g=>g.addEventListener('click',()=>{const row=Number(g.dataset.row),cycle=['left','dot','right'],i=cycle.indexOf(arrowState[row]||'dot');arrowState[row]=cycle[(i+1)%cycle.length];rerenderView('combined')}));
 }
+
 function buildControls(){
   const box=document.getElementById('parts');box.innerHTML='';const members=allMembers();
   for(const p of ['S','M','A','T','B']){const d=document.createElement('div');d.className='partbox';d.innerHTML=`<h3>${p} ${LABEL[p]}</h3><div class="names"></div>`;const n=d.querySelector('.names');members.filter(x=>x.part===p).forEach(m=>{const b=document.createElement('button');b.type='button';b.className='namebtn';b.dataset.name=m.name;b.textContent=m.name;b.style.background=COLORS[p];b.addEventListener('click',()=>{absent.has(m.name)?absent.delete(m.name):absent.add(m.name);resetManualPositions();update()});n.appendChild(b)});box.appendChild(d)}
 }
-function update(){const {rows,moves}=computeCombined();document.getElementById('practiceWrap').innerHTML=makePractice();document.getElementById('splitWrap').innerHTML=makeSplit(rows);document.getElementById('combinedWrap').innerHTML=makeCombined(rows);document.getElementById('seatedWrap').innerHTML=makeSeated(rows);const counts=[1,2,3,4].map(i=>rows[i].length).join(' - ');document.getElementById('log').textContent=(moves.length?`자동 조정: ${moves.join(' / ')} · `:'자동 조정 없음 · ')+`합쳐 선 줄별 인원 ${counts}`;document.querySelectorAll('.namebtn').forEach(b=>b.classList.toggle('on',absent.has(b.dataset.name)));bindManualControls()}
+function update(){const {rows,moves}=computeCombined();currentAutoRows=cloneRows(rows);document.getElementById('practiceWrap').innerHTML=makePractice();document.getElementById('splitWrap').innerHTML=makeSplit(rows);document.getElementById('combinedWrap').innerHTML=makeCombined(rows);document.getElementById('seatedWrap').innerHTML=makeSeated(rows);const counts=[1,2,3,4].map(i=>rows[i].length).join(' - ');document.getElementById('log').textContent=(moves.length?`자동 조정: ${moves.join(' / ')} · `:'자동 조정 없음 · ')+`합쳐 선 줄별 인원 ${counts}`;document.querySelectorAll('.namebtn').forEach(b=>b.classList.toggle('on',absent.has(b.dataset.name)));bindManualControls()}
 function rebuild(){buildControls();update()}
 
 function downloadSvg(id,prefix){
