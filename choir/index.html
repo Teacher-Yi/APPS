@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="theme-color" content="#f6f7fb" />
+<title>성가대 좌석 배치 v4</title>
+<style>
+  :root{
+    --bg:#f6f7fb; --card:#ffffff; --ink:#171717; --muted:#666; --line:#d9dde7;
+    --S:#ff7b3a; --M:#f6b089; --A:#ffd623; --T:#46b9df; --B:#61c7a6;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",Arial,sans-serif;background:var(--bg);color:var(--ink)}
+  button,input,select{font:inherit}
+  button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+  .wrap{max-width:1220px;margin:0 auto;padding:18px 16px 42px}
+  .top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  h1{font-size:28px;margin:0 14px 0 0}
+  .control{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+  input[type=date]{font-size:16px;padding:8px;border:1px solid var(--line);border-radius:9px;min-height:42px}
+  button{border:0;border-radius:10px;padding:10px 13px;font-weight:800;cursor:pointer}
+  .primary{background:#111;color:#fff}.ghost{background:#eef1f6;color:#222}.danger{background:#ffe8e5;color:#a0281f}.accent{background:#fff2b8;color:#4b3c00}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px}
+  .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:13px;color:#444;margin:8px 0 14px}
+  .dot{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+  .parts{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:10px 0 14px}
+  .partbox{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px}
+  .partbox h3{margin:0 0 8px;font-size:15px}
+  .names{display:flex;flex-wrap:wrap;gap:6px}
+  .namebtn{padding:9px 10px;min-height:42px;border-radius:999px;border:1px solid rgba(0,0,0,.13);font-size:14px;background:#fff;font-weight:800}
+  .namebtn.on{outline:3px solid rgba(0,0,0,.22);filter:grayscale(.25) brightness(.84)}
+  .mobile-note{font-size:13px;color:#555;margin:4px 0 10px}
+  .log{margin:10px 0 18px;background:#fff7db;border:1px solid #ecd27a;border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.45}
+  .grid{display:grid;grid-template-columns:1fr;gap:18px}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:0 2px 10px rgba(0,0,0,.03)}
+  .panelhead{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}
+  .panelhead h2{font-size:20px;margin:0}
+  .svgwrap{width:100%;overflow-x:auto;overflow-y:hidden;background:#fff;border-radius:10px;-webkit-overflow-scrolling:touch}
+  svg{width:100%;min-width:0;height:auto;display:block;background:#fff}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.48);display:none;align-items:flex-end;justify-content:center;z-index:20;padding:0}
+  .modal.open{display:flex}
+  .sheet{background:#fff;width:min(760px,100%);max-height:92vh;border-radius:22px 22px 0 0;overflow:auto;padding:18px 16px calc(22px + env(safe-area-inset-bottom))}
+  .sheethead{display:flex;justify-content:space-between;gap:10px;align-items:center;position:sticky;top:0;background:#fff;padding-bottom:10px;z-index:2}
+  .sheethead h2{margin:0;font-size:22px}
+  .manage-actions{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 14px}
+  .memberlist{display:grid;gap:8px}
+  .memberrow{display:grid;grid-template-columns:1.2fr .6fr .6fr auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px}
+  .memberrow strong{font-size:15px}.small{font-size:12px;color:#666}
+  .formcard{border:1px solid var(--line);border-radius:14px;padding:12px;margin:12px 0;background:#fafbfe}
+  .formgrid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px}
+  .formgrid input,.formgrid select{width:100%;padding:10px;border:1px solid var(--line);border-radius:9px;background:#fff;min-height:42px}
+  .status{font-size:13px;color:#555;margin-top:8px}
+  .hiddenfile{display:none}
+  .sheetlink{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border-radius:10px;padding:10px 13px;font-weight:800;background:#e8f0fe;color:#174ea6;min-height:42px}
+  .syncstatus{margin:6px 0 12px;padding:10px 12px;border-radius:12px;background:#eef7ef;border:1px solid #b9d9bd;color:#245c2b;font-size:13px;line-height:1.4}
+  .syncstatus.warn{background:#fff4e5;border-color:#f0c36d;color:#7a4d00}
+  .syncstatus.error{background:#fdecec;border-color:#e2aaaa;color:#8a1f1f}
+  @media (max-width:850px){
+    .wrap{padding:12px 12px 36px}
+    .top{align-items:stretch}
+    h1{font-size:25px;width:100%;margin:4px 0 2px}
+    .control{flex:1;padding:9px 10px}
+    input[type=date]{width:100%;font-size:17px}
+    .toolbar button,.toolbar .sheetlink{min-height:46px;flex:1 1 42%}
+    .legend{font-size:13px;gap:9px}
+    .parts{grid-template-columns:1fr}
+    .partbox{padding:11px}
+    .partbox h3{font-size:16px}
+    .names{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+    .namebtn{width:100%;font-size:14px;padding:10px 5px}
+    .panel{padding:10px}
+    .panelhead h2{font-size:19px}
+    .panelhead button{min-width:92px;min-height:44px}
+    .formgrid{grid-template-columns:1fr 1fr}
+    .formgrid .wide{grid-column:1/-1}
+    .memberrow{grid-template-columns:1.25fr .55fr .55fr auto}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>성가대 좌석 배치</h1>
+    <div class="control"><label>일자 <input id="date" type="date"></label></div>
+  </div>
+
+  <div class="toolbar">
+    <button class="ghost" id="preset920">9/20 검증</button>
+    <button class="ghost" id="clear">결석 초기화</button>
+    <button class="accent" id="refreshRoster">명단 새로고침</button>
+    <a class="sheetlink" href="https://docs.google.com/spreadsheets/d/1tcGy3NBj1KVh2TN1ccjqVjRFkPw-ll7aIPdM74-NVmI/edit?ouid=117291964473012813284" target="_blank" rel="noopener">구글시트 열기</a>
+  </div>
+
+  <div class="legend">
+    <span><i class="dot" style="background:var(--S)"></i>S 소프라노</span>
+    <span><i class="dot" style="background:var(--M)"></i>M 메조소프라노</span>
+    <span><i class="dot" style="background:var(--A)"></i>A 알토</span>
+    <span><i class="dot" style="background:var(--T)"></i>T 테너</span>
+    <span><i class="dot" style="background:var(--B)"></i>B 베이스</span>
+  </div>
+
+  <div class="mobile-note">결석할 분의 이름을 누르면 선택됩니다. 명단을 수정한 뒤에는 <b>명단 새로고침</b>을 누르세요.</div>
+  <div id="syncStatus" class="syncstatus">구글시트 명단을 불러오는 중…</div>
+  <div id="parts" class="parts"></div>
+  <div id="log" class="log">결석자를 선택하면 자동으로 배치합니다.</div>
+
+  <div class="grid">
+    <section class="panel"><div class="panelhead"><h2>연습실 좌석 배치</h2><button class="primary savebtn" data-svg="practice" data-prefix="연습실_좌석_배치">PNG 저장</button></div><div class="svgwrap" id="practiceWrap"></div><div class="hint">고정좌석은 그대로 두고 결석자 명패만 비웁니다.</div></section>
+    <section class="panel"><div class="panelhead"><h2>본당 나눠 선 대형</h2><button class="primary savebtn" data-svg="split" data-prefix="본당_나눠_선_대형">PNG 저장</button></div><div class="svgwrap" id="splitWrap"></div></section>
+    <section class="panel"><div class="panelhead"><h2>본당 합쳐 선 대형</h2><button class="primary savebtn" data-svg="combined" data-prefix="본당_합쳐_선_대형">PNG 저장</button></div><div class="svgwrap" id="combinedWrap"></div><div class="hint">기본 순서를 최대한 유지하고 필요한 경우 끝자리만 최소 이동합니다.</div></section>
+    <section class="panel"><div class="panelhead"><h2>본당 좌석 배치</h2><button class="primary savebtn" data-svg="seated" data-prefix="본당_좌석_배치">PNG 저장</button></div><div class="svgwrap" id="seatedWrap"></div><div class="hint">가운데 통로를 쓰지 않는 동선을 고려해 좌석을 역산합니다.</div></section>
+  </div>
+</div>
+
+<script>
+'use strict';
+const SHEET_ID='1tcGy3NBj1KVh2TN1ccjqVjRFkPw-ll7aIPdM74-NVmI';
+const SHEET_NAME='대원명단';
+const SHEET_VIEW_URL='https://docs.google.com/spreadsheets/d/1tcGy3NBj1KVh2TN1ccjqVjRFkPw-ll7aIPdM74-NVmI/edit?ouid=117291964473012813284';
+const COLORS={S:'#ff7b3a',M:'#f6b089',A:'#ffd623',T:'#46b9df',B:'#61c7a6'};
+const LABEL={S:'소프라노',M:'메조소프라노',A:'알토',T:'테너',B:'베이스'};
+const INITIAL_ROWS={
+  1:[['이정아','A'],['허은주','A'],['양연정','A'],['이은주','A'],['홍은희','A'],['조성희','A'],['반주미','A'],['김현영','S'],['김다영','S'],['김지용','S'],['김화정','S'],['김주영','S'],['박문숙','S'],['이향화','S']],
+  2:[['조지현','A'],['한정희','A'],['고원실','A'],['이재영','A'],['김진경','A'],['이영애','A'],['김지현','A'],['권혁자','S'],['손연숙','S'],['김은남','S'],['최은주','S'],['김혜실','S'],['오정옥','S'],['이선옥','S']],
+  3:[['이정헌','B'],['윤준기','B'],['임철민','B'],['손은숙','M'],['김미정A','M'],['이정옥','M'],['김미정D','M'],['채현정','M'],['안인숙','M'],['오정애','M'],['이희순','M'],['이선희','M'],['문은주','M'],['조성임','M']],
+  4:[['김민호','B'],['김동욱','B'],['전철','B'],['양태명','B'],['이광호','T'],['김준영','T'],['김한수','T'],['김이작','T'],['김윤곤','T'],['이승석','T'],['윤국영','T']]
+};
+let rowsBase=cloneRows(INITIAL_ROWS);
+let practiceRowsBase=cloneRows(INITIAL_ROWS);
+let rosterRecords=[];
+const absent=new Set();
+
+function cloneRows(rows){return {1:(rows[1]||[]).map(x=>[...x]),2:(rows[2]||[]).map(x=>[...x]),3:(rows[3]||[]).map(x=>[...x]),4:(rows[4]||[]).map(x=>[...x])}}
+function allMembers(){return Object.values(rowsBase).flat().map(([name,part])=>({name,part}))}
+function getMember(name){for(let r=1;r<=4;r++){const i=rowsBase[r].findIndex(x=>x[0]===name);if(i>=0)return {row:r,index:i,name,part:rowsBase[r][i][1]}}return null}
+function setSyncStatus(text,kind='ok'){const el=document.getElementById('syncStatus');if(!el)return;el.textContent=text;el.className='syncstatus'+(kind==='ok'?'':' '+kind)}
+function parseCSV(text){
+  const rows=[];let row=[],cell='',q=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(q){if(ch==='"'){if(text[i+1]==='"'){cell+='"';i++}else q=false}else cell+=ch}
+    else{if(ch==='"')q=true;else if(ch===','){row.push(cell);cell=''}else if(ch==='\n'){row.push(cell);rows.push(row);row=[];cell=''}else if(ch!=='\r')cell+=ch}
+  }
+  if(cell.length||row.length){row.push(cell);rows.push(row)}
+  return rows;
+}
+function rowsFromRecords(records,rowKey,posKey){
+  const out={1:[],2:[],3:[],4:[]};
+  records.filter(x=>x.status==='재적').forEach(x=>{const r=Number(x[rowKey]),p=Number(x[posKey]);if([1,2,3,4].includes(r)&&x.name&&COLORS[x.part])out[r].push({item:[x.name,x.part],pos:Number.isFinite(p)?p:9999})});
+  for(let r=1;r<=4;r++)out[r]=out[r].sort((a,b)=>a.pos-b.pos||a.item[0].localeCompare(b.item[0],'ko')).map(x=>x.item);
+  return out;
+}
+async function loadRosterFromSheet(manual=false){
+  setSyncStatus(manual?'구글시트에서 최신 명단을 다시 읽는 중…':'구글시트 명단을 불러오는 중…');
+  const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}&_=${Date.now()}`;
+  try{
+    const res=await fetch(url,{cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);
+    const text=await res.text();const table=parseCSV(text);if(table.length<2)throw new Error('명단 데이터 없음');
+    const h=table[0].map(x=>x.trim());const idx=name=>h.indexOf(name);
+    const required=['이름','파트','합쳐선_줄','합쳐선_순서','연습실_줄','연습실_순서','상태'];
+    if(required.some(k=>idx(k)<0))throw new Error('시트 열 이름을 확인해 주세요');
+    rosterRecords=table.slice(1).filter(r=>r.some(Boolean)).map(r=>({name:(r[idx('이름')]||'').trim(),part:(r[idx('파트')]||'').trim().toUpperCase(),combinedRow:r[idx('합쳐선_줄')],combinedPos:r[idx('합쳐선_순서')],practiceRow:r[idx('연습실_줄')],practicePos:r[idx('연습실_순서')],status:(r[idx('상태')]||'').trim(),note:idx('비고')>=0?(r[idx('비고')]||'').trim():''}));
+    const combined=rowsFromRecords(rosterRecords,'combinedRow','combinedPos');const practice=rowsFromRecords(rosterRecords,'practiceRow','practicePos');
+    const count=Object.values(combined).flat().length;if(!count)throw new Error('재적 대원이 없습니다');
+    rowsBase=combined;practiceRowsBase=practice;
+    [...absent].forEach(n=>{if(!getMember(n))absent.delete(n)});
+    buildControls();update();
+    setSyncStatus(`구글시트 연결됨 · 재적 ${count}명 · ${new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})} 기준`);
+  }catch(err){
+    console.error(err);rowsBase=cloneRows(INITIAL_ROWS);practiceRowsBase=cloneRows(INITIAL_ROWS);buildControls();update();
+    setSyncStatus('구글시트에서 명단을 읽지 못했습니다. 시트 공유를 “링크가 있는 모든 사용자 - 뷰어”로 설정한 뒤 새로고침해 주세요. 지금은 내장 기본명단으로 표시합니다.','error');
+  }
+}
+
+function fmtDate(){const v=document.getElementById('date').value;if(!v)return'26.  .  .';const[y,m,d]=v.split('-').map(Number);return`${String(y).slice(-2)}. ${m}. ${d}.`}
+function absentText(){const order=['S','A','M','T','B'],members=allMembers(),chunks=[];for(const p of order){const names=members.filter(x=>x.part===p&&absent.has(x.name)).map(x=>x.name);if(names.length)chunks.push(`${p}(${names.join(',')})`)}return chunks.length?`결석: ${chunks.join(', ')}`:'결석: -'}
+function partCount(arr,p){return arr.filter(x=>x[1]===p).length}
+function chooseEndCandidate(src,dst,preferLeft=true){const opts=[];if(src.length)opts.push({idx:0,item:src[0],tie:preferLeft?0:1});if(src.length>1)opts.push({idx:src.length-1,item:src[src.length-1],tie:preferLeft?1:0});return opts.map(o=>{const p=o.item[1],before=Math.abs(partCount(src,p)-partCount(dst,p)),after=Math.abs((partCount(src,p)-1)-(partCount(dst,p)+1));return{...o,score:after-before}}).sort((a,b)=>a.score-b.score||a.tie-b.tie)[0]}
+
+function computeCombined(){
+  const r={};for(let i=1;i<=4;i++)r[i]=rowsBase[i].filter(x=>!absent.has(x[0])).map(x=>[...x]);
+  const moves=[];
+  while(r[2].length>r[1].length+1){const c=chooseEndCandidate(r[2],r[1],true);if(!c)break;const[it]=r[2].splice(c.idx,1);if(it[1]==='A')r[1].unshift(it);else r[1].push(it);moves.push(`${it[0]} 2열→1열`)}
+  while(r[1].length>r[2].length+1){const c=chooseEndCandidate(r[1],r[2],false);if(!c)break;const[it]=r[1].splice(c.idx,1);if(it[1]==='A')r[2].unshift(it);else r[2].push(it);moves.push(`${it[0]} 1열→2열`)}
+  // 3열과 4열 차이가 큰 경우, 메조가 아니라 3열의 베이스를 4열로 보낸다.
+  const movedDown=[];
+  while(r[3].length-r[4].length>3){const idx=r[3].findIndex(x=>x[1]==='B');if(idx<0)break;const[it]=r[3].splice(idx,1);movedDown.push(it);moves.push(`${it[0]} 3열→4열`)}
+  if(movedDown.length)r[4]=[...movedDown,...r[4]];
+  while(r[4].length-r[3].length>1){const idx=r[4].findIndex(x=>x[1]==='B');if(idx<0)break;const[it]=r[4].splice(idx,1);let bi=0;while(bi<r[3].length&&r[3][bi][1]==='B')bi++;r[3].splice(bi,0,it);moves.push(`${it[0]} 4열→3열`)}
+  return{rows:r,moves};
+}
+function splitRows(rows){const out={};for(let i=1;i<=4;i++){const n=rows[i].length,lc=Math.floor(n/2);out[i]={left:rows[i].slice(0,lc),right:rows[i].slice(lc)}}return out}
+
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function svgEl(tag,attrs={},text=''){const a=Object.entries(attrs).map(([k,v])=>`${k}="${String(v).replace(/"/g,'&quot;')}"`).join(' ');return`<${tag}${a?' '+a:''}>${text}</${tag}>`}
+function nameCard(name,part,x,y,w=44,h=82){const chars=[...name],fs=name.length>=4?18:21;let t='',start=y+(h-(chars.length*fs))/2+fs-2;chars.forEach((c,i)=>{t+=svgEl('text',{x:x+w/2,y:start+i*fs,'text-anchor':'middle','font-size':fs,'font-weight':'700','font-family':'Arial, Noto Sans KR, sans-serif'},esc(c))});return svgEl('g',{},svgEl('rect',{x,y,width:w,height:h,rx:7,fill:COLORS[part],stroke:'#333','stroke-width':1})+t)}
+function header(title){const d=fmtDate(),abs=absentText(),size=Math.max(11,Math.min(16,850/(abs.length||1)));return svgEl('text',{x:18,y:38,'font-size':29,'font-weight':'800','font-family':'Arial, Noto Sans KR, sans-serif'},`${title}(${d})`)+svgEl('rect',{x:560,y:12,width:450,height:38,rx:8,fill:'#fff1bf'})+svgEl('text',{x:785,y:37,'text-anchor':'middle','font-size':size,'font-weight':'600','font-family':'Arial, Noto Sans KR, sans-serif'},esc(abs))}
+function frame(){let s='';for(let y=60;y<=500;y+=110)s+=svgEl('line',{x1:20,y1:y,x2:1004,y2:y,stroke:'#eceff4'});return s}
+function renderGroup(arr,x0,y){let s='';arr.forEach((it,i)=>s+=nameCard(it[0],it[1],x0+i*46,y,44,82));return s}
+function rowLayoutSvg(title,id,rows,offsets={}){let s=`<svg id="${id}" viewBox="0 0 1024 520" xmlns="http://www.w3.org/2000/svg">${header(title)}${frame()}`;for(let i=1;i<=4;i++){const y=78+(i-1)*110,arr=rows[i],w=Math.max(0,arr.length*46-2);let x=512-w/2+(offsets[i]||0);s+=renderGroup(arr,x,y)}return s+'</svg>'}
+function makePractice(){let s=`<svg id="practice" viewBox="0 0 1024 520" xmlns="http://www.w3.org/2000/svg">${header('연습실 좌석 배치')}${frame()}`;for(let i=1;i<=4;i++){const y=78+(i-1)*110,base=practiceRowsBase[i],w=Math.max(0,base.length*46-2),x=512-w/2;base.forEach((it,k)=>{if(!absent.has(it[0]))s+=nameCard(it[0],it[1],x+k*46,y,44,82)})}return s+'</svg>'}
+function makeSplit(rows){const sp=splitRows(rows);let s=`<svg id="split" viewBox="0 0 1024 520" xmlns="http://www.w3.org/2000/svg">${header('본당 나눠 선 대형')}${frame()}`;for(let i=1;i<=4;i++){const y=78+(i-1)*110,L=sp[i].left,R=sp[i].right,lw=Math.max(0,L.length*46-2),rw=Math.max(0,R.length*46-2),lx=330-lw/2,rx=720-rw/2;s+=renderGroup(L,lx,y)+renderGroup(R,rx,y)}return s+'</svg>'}
+function arrow(x,y,dir){return svgEl('text',{x,y,'font-size':54,fill:'#777','font-family':'Arial'},dir==='left'?'←':'→')}
+function makeCombined(rows){let s=`<svg id="combined" viewBox="0 0 1024 520" xmlns="http://www.w3.org/2000/svg">${header('본당 합쳐 선 대형')}${frame()}`;for(let i=1;i<=4;i++){const y=78+(i-1)*110,arr=rows[i],w=Math.max(0,arr.length*46-2);let x=512-w/2;if(i===2)x+=8;if(i===4)x+=18;s+=renderGroup(arr,x,y);if(i===2)s+=arrow(915,y+58,'left');if(i===4)s+=arrow(915,y+58,'left')}return s+'</svg>'}
+function activeCombined(rows,row,part){return rows[row].filter(x=>x[1]===part).map(x=>[...x])}
+function makeSeated(rows){
+  const A1=activeCombined(rows,1,'A'),A2=activeCombined(rows,2,'A'),B3=activeCombined(rows,3,'B'),B4=activeCombined(rows,4,'B');
+  let b4=[...B4],need1=Math.max(0,8-A1.length),take1=b4.splice(Math.max(0,b4.length-need1),need1),need2=Math.max(0,8-A2.length),take2=b4.splice(0,need2);
+  const right=[A1.concat(take1),A2.concat(take2),B3.concat(b4),[]];
+  const S1=activeCombined(rows,1,'S'),S2=activeCombined(rows,2,'S');let M=activeCombined(rows,3,'M'),T=activeCombined(rows,4,'T');
+  const m1=M.splice(0,Math.max(0,8-S1.length)),m2=M.splice(0,Math.max(0,8-S2.length));
+  const left1=m1.concat(S1),left2=m2.concat(S2);let m3=M.splice(0,Math.min(8,M.length)),t3=T.splice(0,Math.max(0,8-m3.length)),left3=t3.concat(m3),left4=T.concat(M);const left=[left1,left2,left3,left4];
+  let s=`<svg id="seated" viewBox="0 0 1024 520" xmlns="http://www.w3.org/2000/svg">${header('본당 좌석 배치')}${frame()}`;
+  for(let i=0;i<4;i++){const y=78+i*110;s+=renderGroup(left[i],85,y)+renderGroup(right[i],550,y)}
+  s+=svgEl('rect',{x:493,y:300,width:48,height:84,rx:7,fill:'#cbb8dd',stroke:'#333'})+svgEl('text',{x:517,y:328,'text-anchor':'middle','font-size':19,'font-weight':'700'},'목')+svgEl('text',{x:517,y:350,'text-anchor':'middle','font-size':19,'font-weight':'700'},'사')+svgEl('text',{x:517,y:372,'text-anchor':'middle','font-size':19,'font-weight':'700'},'님');return s+'</svg>'
+}
+
+function buildControls(){
+  const box=document.getElementById('parts');box.innerHTML='';const members=allMembers();
+  for(const p of ['S','M','A','T','B']){const d=document.createElement('div');d.className='partbox';d.innerHTML=`<h3>${p} ${LABEL[p]}</h3><div class="names"></div>`;const n=d.querySelector('.names');members.filter(x=>x.part===p).forEach(m=>{const b=document.createElement('button');b.type='button';b.className='namebtn';b.dataset.name=m.name;b.textContent=m.name;b.style.background=COLORS[p];b.addEventListener('click',()=>{absent.has(m.name)?absent.delete(m.name):absent.add(m.name);update()});n.appendChild(b)});box.appendChild(d)}
+}
+function update(){const {rows,moves}=computeCombined();document.getElementById('practiceWrap').innerHTML=makePractice();document.getElementById('splitWrap').innerHTML=makeSplit(rows);document.getElementById('combinedWrap').innerHTML=makeCombined(rows);document.getElementById('seatedWrap').innerHTML=makeSeated(rows);const counts=[1,2,3,4].map(i=>rows[i].length).join(' - ');document.getElementById('log').textContent=(moves.length?`자동 조정: ${moves.join(' / ')} · `:'자동 조정 없음 · ')+`합쳐 선 줄별 인원 ${counts}`;document.querySelectorAll('.namebtn').forEach(b=>b.classList.toggle('on',absent.has(b.dataset.name)))}
+function rebuild(){buildControls();update()}
+
+function downloadSvg(id,prefix){
+  const svg=document.getElementById(id);if(!svg)return;const xml=new XMLSerializer().serializeToString(svg),blob=new Blob([xml],{type:'image/svg+xml;charset=utf-8'}),url=URL.createObjectURL(blob),img=new Image();
+  img.onload=()=>{const c=document.createElement('canvas');c.width=2048;c.height=1040;const ctx=c.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);c.toBlob(b=>{const obj=URL.createObjectURL(b),a=document.createElement('a');a.href=obj;a.download=`${prefix}_${fmtDate().replace(/\s/g,'')}.png`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(obj),1500)},'image/png')};img.onerror=()=>URL.revokeObjectURL(url);img.src=url;
+}
+
+function init(){
+  const now=new Date(),local=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);document.getElementById('date').value=local;
+  document.getElementById('date').addEventListener('change',update);
+  document.getElementById('preset920').addEventListener('click',()=>{absent.clear();['김다영','홍은희','문은주','이광호','양태명'].forEach(n=>{if(getMember(n))absent.add(n)});document.getElementById('date').value='2026-09-20';update();document.getElementById('parts').scrollIntoView({behavior:'smooth',block:'start'})});
+  document.getElementById('clear').addEventListener('click',()=>{absent.clear();update()});
+  document.getElementById('refreshRoster').addEventListener('click',()=>loadRosterFromSheet(true));
+  document.querySelectorAll('.savebtn').forEach(btn=>btn.addEventListener('click',()=>downloadSvg(btn.dataset.svg,btn.dataset.prefix)));
+  rebuild();loadRosterFromSheet(false);
+}
+init();
+</script>
+</body>
+</html>
