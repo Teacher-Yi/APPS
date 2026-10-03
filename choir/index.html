@@ -250,29 +250,30 @@ function makePractice(){
   for(let row=1;row<=4;row++){
     const y=78+(row-1)*110, slots=map[row]||{};
     if(row===1){
-      // 왼쪽 14~11 / 가운데 10~6 / 오른쪽 5~1
-      s+=practiceBenchByPositions(slots,[14,13,12,11],leftX,y);
+      // 실제 연습실을 바라보는 방향에 맞춰 좌우를 반전해 표시한다.
+      // 왼쪽 5~1 / 가운데 10~6 / 오른쪽 14~11
+      s+=practiceBenchByPositions(slots,[5,4,3,2,1],leftX,y);
       s+=practiceBenchByPositions(slots,[10,9,8,7,6],centerX,y);
-      s+=practiceBenchByPositions(slots,[5,4,3,2,1],rightX,y);
+      s+=practiceBenchByPositions(slots,[14,13,12,11],rightX+46,y);
     }else if(row===2){
-      // 왼쪽 13~10 / 가운데 9~6 / 오른쪽 5~1
-      s+=practiceBenchByPositions(slots,[13,12,11,10],leftX,y);
+      // 왼쪽 5~1 / 가운데 9~6 / 오른쪽 13~10
+      s+=practiceBenchByPositions(slots,[5,4,3,2,1],leftX,y);
       s+=practiceBenchByPositions(slots,[9,8,7,6],centerX,y);
-      s+=practiceBenchByPositions(slots,[5,4,3,2,1],rightX,y);
+      s+=practiceBenchByPositions(slots,[13,12,11,10],rightX+46,y);
     }else if(row===3){
-      // 14번은 왼쪽 보조의자 / 왼쪽 13~10 / 가운데 9~5 / 오른쪽 4~1
-      const hx=8;
-      s+=bench(hx,y-3,60,88)+seatGrid(hx+8,y-3,1,88)+renderPracticeSeat(slots,14,hx+8,y);
-      s+=practiceBenchByPositions(slots,[13,12,11,10],leftX+12,y);
+      // 왼쪽 4~1 / 가운데 9~5 / 오른쪽 13~10 / 14번 보조의자
+      s+=practiceBenchByPositions(slots,[4,3,2,1],leftX,y);
       s+=practiceBenchByPositions(slots,[9,8,7,6,5],centerX,y);
-      s+=practiceBenchByPositions(slots,[4,3,2,1],rightX+46,y);
+      s+=practiceBenchByPositions(slots,[13,12,11,10],rightX+12,y);
+      const hx=956;
+      s+=bench(hx,y-3,60,88)+seatGrid(hx+8,y-3,1,88)+renderPracticeSeat(slots,14,hx+8,y);
     }else{
-      // 왼쪽 13~10 / 가운데 9~6 / 5번 보조의자 / 오른쪽 4~1
-      s+=practiceBenchByPositions(slots,[13,12,11,10],leftX,y);
-      s+=practiceBenchByPositions(slots,[9,8,7,6],centerX,y);
-      const hx=610;
+      // 왼쪽 4~1 / 5번 보조의자 / 가운데 9~6 / 오른쪽 13~10
+      s+=practiceBenchByPositions(slots,[4,3,2,1],leftX,y);
+      const hx=315;
       s+=bench(hx,y-3,60,88)+seatGrid(hx+8,y-3,1,88)+renderPracticeSeat(slots,5,hx+8,y);
-      s+=practiceBenchByPositions(slots,[4,3,2,1],rightX+46,y);
+      s+=practiceBenchByPositions(slots,[9,8,7,6],centerX+46,y);
+      s+=practiceBenchByPositions(slots,[13,12,11,10],rightX+46,y);
     }
   }
   if(conflicts.length){
@@ -306,27 +307,51 @@ function makeCombined(){
   }
   return s+'</svg>';
 }
-function activeCombined(rows,row,part){return (rows[row]||[]).filter(x=>x[1]===part).map(x=>[...x])}
+function activeByPartFromSplit(splitLay,part){
+  const rows=rowsFromSplitLayout(splitLay), out=[];
+  for(let row=1;row<=4;row++) for(const it of (rows[row]||[])) if(it[1]===part) out.push([...it]);
+  return out;
+}
 function fixedSlots(items,total=8,start=0){const out=Array(total).fill(null);for(let i=0;i<items.length&&start+i<total;i++)out[start+i]=[...items[i]];return out}
+function take(arr,n){return arr.splice(0,Math.min(n,arr.length))}
+function packRows(items,rowCount=4,rowSize=8){
+  const rows=[];for(let r=0;r<rowCount;r++)rows.push(Array(rowSize).fill(null));
+  let k=0;for(const it of items){if(k>=rowCount*rowSize)break;rows[Math.floor(k/rowSize)][k%rowSize]=[...it];k++;}
+  return rows;
+}
 function seatedLayoutFromSplit(splitLay){
-  const rows=rowsFromSplitLayout(splitLay);
-  const A1=activeCombined(rows,1,'A'),A2=activeCombined(rows,2,'A');
-  const S1=activeCombined(rows,1,'S'),S2=activeCombined(rows,2,'S');
-  let M=activeCombined(rows,3,'M'),T=activeCombined(rows,4,'T');
-  const m1=M.splice(0,Math.max(0,8-S1.length)),m2=M.splice(0,Math.max(0,8-S2.length));
-  const left1=m1.concat(S1),left2=m2.concat(S2);
-  const m3=M.splice(0,Math.min(8,M.length)),t3=T.splice(0,Math.max(0,8-m3.length));
-  const left3=t3.concat(m3),left4=T.concat(M);
-  const activeName=new Set(Object.values(rows).flat().map(x=>x[0]));
-  let bass=(rowsBase[4]||[]).filter(x=>x[1]==='B'&&activeName.has(x[0])).map(x=>[...x]);
-  const gap1=Math.max(0,8-A1.length),gap2=Math.max(0,8-A2.length);
-  const fill1=bass.splice(0,Math.min(gap1,bass.length));
-  const fill2=bass.splice(0,Math.min(gap2,bass.length));
-  const usedB=new Set([...fill1,...fill2].map(x=>x[0]));
-  const remainingB=Object.values(rows).flat().filter(x=>x[1]==='B'&&!usedB.has(x[0]));
-  // r3은 목사님이 맨 왼쪽 한 칸을 사용하므로 대원용 7칸만 관리한다. 베이스는 오른쪽 끝 정렬.
-  const r3=Array(7).fill(null), start=Math.max(0,7-remainingB.length);remainingB.slice(-7).forEach((x,i)=>r3[start+i]=[...x]);
-  return {l1:fixedSlots(left1),l2:fixedSlots(left2),l3:fixedSlots(left3),l4:fixedSlots(left4),r1:fixedSlots(A1.concat(fill1)),r2:fixedSlots(A2.concat(fill2)),r3};
+  // 좌석 배치는 '현재 나눠 선 대형'을 기준으로 하되, 모든 재적 대원이 반드시 한 번씩 들어가게 한다.
+  // 왼쪽 블록: S -> M -> T, 오른쪽 블록: A -> B. 목사님은 오른쪽 3열 왼쪽 첫 칸 고정.
+  const S=activeByPartFromSplit(splitLay,'S');
+  const M=activeByPartFromSplit(splitLay,'M');
+  const T=activeByPartFromSplit(splitLay,'T');
+  const A=activeByPartFromSplit(splitLay,'A');
+  const B=activeByPartFromSplit(splitLay,'B');
+
+  // 여자 대원이 혼자 한 줄에 남는 상황을 줄이기 위해, 왼쪽 블록은 S/M을 먼저 채우고
+  // 한 줄의 마지막에 여자 1명만 덩그러니 남을 때는 T 한 명을 곁에 붙일 수 있도록 순서를 보정한다.
+  const female=[...S,...M], male=[...T], leftItems=[];
+  while(female.length){
+    const remInRow=8-(leftItems.length%8);
+    if(remInRow===1 && female.length===1 && male.length){leftItems.push(male.shift());continue;}
+    leftItems.push(female.shift());
+  }
+  leftItems.push(...male);
+  const L=packRows(leftItems,4,8);
+
+  // 오른쪽 1,2열은 A를 우선 배치하고 남는 자리를 B가 앞줄부터 채운다.
+  const r1=Array(8).fill(null), r2=Array(8).fill(null), r3=Array(7).fill(null);
+  let ai=0, bi=0;
+  for(let i=0;i<8&&ai<A.length;i++)r1[i]=[...A[ai++]];
+  for(let i=0;i<8&&ai<A.length;i++)r2[i]=[...A[ai++]];
+  for(let i=0;i<8&&bi<B.length;i++)if(!r1[i])r1[i]=[...B[bi++]];
+  for(let i=0;i<8&&bi<B.length;i++)if(!r2[i])r2[i]=[...B[bi++]];
+  // 남은 B는 목사님과 간격을 두고 오른쪽 끝부터 앉힌다.
+  const restB=B.slice(bi);
+  const start=Math.max(0,7-restB.length);
+  restB.slice(-7).forEach((it,i)=>r3[start+i]=[...it]);
+
+  return {l1:L[0],l2:L[1],l3:L[2],l4:L[3],r1,r2,r3};
 }
 function renderSlots(arr,x,y,lane){let s='';for(let i=0;i<arr.length;i++){const it=arr[i];if(it)s+=nameCard(it[0],it[1],x+i*46,y,44,82,lane,i)}return s}
 function makeSeated(){
