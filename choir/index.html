@@ -238,10 +238,12 @@ function practiceBenchByPositions(slotMap,positions,x,y){
 }
 function makePractice(){
   /*
-    새 연습실 배치: 세 개의 긴 장의자 열 + 일부 보조의자.
-    구글시트의 연습실_순서는 단순 정렬값이 아니라 '실제 좌석 번호'로 사용한다.
-    따라서 중간 번호가 비면 그 자리는 비워 두며, 번호를 압축하지 않는다.
-    좌석번호는 오른쪽 끝에서 1번으로 시작해 왼쪽으로 증가한다.
+    현재 연습실 배치(2026-10 변경): 각 행은 실제 좌석번호를 그대로 사용한다.
+    1열: 왼쪽 1~5 / 가운데 6~10 / 오른쪽 11~14
+    2열: 왼쪽 1~5 / 가운데 6~9 / 오른쪽 10~13
+    3열: 왼쪽 1~4 / 가운데 5~9 / 오른쪽 10~14
+    4열: 왼쪽 1~4 / 5번 보조의자 / 가운데 6~9 / 오른쪽 10~13
+    중간 번호가 비면 빈 좌석으로 남기며 압축하지 않는다.
   */
   const {map,conflicts}=practiceSlotMap();
   const leftX=60, centerX=365, rightX=670;
@@ -250,30 +252,23 @@ function makePractice(){
   for(let row=1;row<=4;row++){
     const y=78+(row-1)*110, slots=map[row]||{};
     if(row===1){
-      // 실제 연습실을 바라보는 방향에 맞춰 좌우를 반전해 표시한다.
-      // 왼쪽 5~1 / 가운데 10~6 / 오른쪽 14~11
-      s+=practiceBenchByPositions(slots,[5,4,3,2,1],leftX,y);
-      s+=practiceBenchByPositions(slots,[10,9,8,7,6],centerX,y);
-      s+=practiceBenchByPositions(slots,[14,13,12,11],rightX+46,y);
+      s+=practiceBenchByPositions(slots,[1,2,3,4,5],leftX,y);
+      s+=practiceBenchByPositions(slots,[6,7,8,9,10],centerX,y);
+      s+=practiceBenchByPositions(slots,[11,12,13,14],rightX+46,y);
     }else if(row===2){
-      // 왼쪽 5~1 / 가운데 9~6 / 오른쪽 13~10
-      s+=practiceBenchByPositions(slots,[5,4,3,2,1],leftX,y);
-      s+=practiceBenchByPositions(slots,[9,8,7,6],centerX,y);
-      s+=practiceBenchByPositions(slots,[13,12,11,10],rightX+46,y);
+      s+=practiceBenchByPositions(slots,[1,2,3,4,5],leftX,y);
+      s+=practiceBenchByPositions(slots,[6,7,8,9],centerX,y);
+      s+=practiceBenchByPositions(slots,[10,11,12,13],rightX+46,y);
     }else if(row===3){
-      // 왼쪽 4~1 / 가운데 9~5 / 오른쪽 13~10 / 14번 보조의자
-      s+=practiceBenchByPositions(slots,[4,3,2,1],leftX,y);
-      s+=practiceBenchByPositions(slots,[9,8,7,6,5],centerX,y);
-      s+=practiceBenchByPositions(slots,[13,12,11,10],rightX+12,y);
-      const hx=956;
-      s+=bench(hx,y-3,60,88)+seatGrid(hx+8,y-3,1,88)+renderPracticeSeat(slots,14,hx+8,y);
+      s+=practiceBenchByPositions(slots,[1,2,3,4],leftX,y);
+      s+=practiceBenchByPositions(slots,[5,6,7,8,9],centerX,y);
+      s+=practiceBenchByPositions(slots,[10,11,12,13,14],rightX,y);
     }else{
-      // 왼쪽 4~1 / 5번 보조의자 / 가운데 9~6 / 오른쪽 13~10
-      s+=practiceBenchByPositions(slots,[4,3,2,1],leftX,y);
+      s+=practiceBenchByPositions(slots,[1,2,3,4],leftX,y);
       const hx=315;
       s+=bench(hx,y-3,60,88)+seatGrid(hx+8,y-3,1,88)+renderPracticeSeat(slots,5,hx+8,y);
-      s+=practiceBenchByPositions(slots,[9,8,7,6],centerX+46,y);
-      s+=practiceBenchByPositions(slots,[13,12,11,10],rightX+46,y);
+      s+=practiceBenchByPositions(slots,[6,7,8,9],centerX+46,y);
+      s+=practiceBenchByPositions(slots,[10,11,12,13],rightX+46,y);
     }
   }
   if(conflicts.length){
@@ -320,36 +315,64 @@ function packRows(items,rowCount=4,rowSize=8){
   return rows;
 }
 function seatedLayoutFromSplit(splitLay){
-  // 좌석 배치는 '현재 나눠 선 대형'을 기준으로 하되, 모든 재적 대원이 반드시 한 번씩 들어가게 한다.
-  // 왼쪽 블록: S -> M -> T, 오른쪽 블록: A -> B. 목사님은 오른쪽 3열 왼쪽 첫 칸 고정.
+  // 본당 좌석은 현재 나눠 선 대형을 기준으로 만들며, 바깥 통로(왼쪽 블록의 왼쪽 끝 / 오른쪽 블록의 오른쪽 끝)를 우선 고려한다.
+  // 왼쪽 블록의 핵심 원칙:
+  // 1) 손은숙·김미정A는 이동거리가 가장 길므로 통로 쪽(왼쪽)에 먼저 배치한다.
+  // 2) 조성임은 무대에서 메조의 끝자리에 서므로 너무 일찍 통로로 나오지 않게 문은주 바로 옆, 메조 줄의 안쪽 끝에 둔다.
+  // 3) 이정옥은 다음 줄 통로 쪽 첫 자리에 둔다.
+  // 4) 좌석이 하나씩 남을 때는 여자 대원보다 테너를 단독 배치하는 쪽을 우선한다.
   const S=activeByPartFromSplit(splitLay,'S');
   const M=activeByPartFromSplit(splitLay,'M');
   const T=activeByPartFromSplit(splitLay,'T');
   const A=activeByPartFromSplit(splitLay,'A');
   const B=activeByPartFromSplit(splitLay,'B');
 
-  // 여자 대원이 혼자 한 줄에 남는 상황을 줄이기 위해, 왼쪽 블록은 S/M을 먼저 채우고
-  // 한 줄의 마지막에 여자 1명만 덩그러니 남을 때는 T 한 명을 곁에 붙일 수 있도록 순서를 보정한다.
-  const female=[...S,...M], male=[...T], leftItems=[];
-  while(female.length){
-    const remInRow=8-(leftItems.length%8);
-    if(remInRow===1 && female.length===1 && male.length){leftItems.push(male.shift());continue;}
-    leftItems.push(female.shift());
-  }
-  leftItems.push(...male);
-  const L=packRows(leftItems,4,8);
+  const byName=(arr,name)=>{const i=arr.findIndex(x=>x[0]===name);return i>=0?arr.splice(i,1)[0]:null};
+  const Swork=S.map(x=>[...x]), Mwork=M.map(x=>[...x]), Twork=T.map(x=>[...x]);
+  const earlyM=['손은숙','김미정A'].map(n=>byName(Mwork,n)).filter(Boolean);
+  const leeJeongOk=byName(Mwork,'이정옥');
+  const munEunju=byName(Mwork,'문은주');
+  const joSeongim=byName(Mwork,'조성임');
 
-  // 오른쪽 1,2열은 A를 우선 배치하고 남는 자리를 B가 앞줄부터 채운다.
+  // 메조 3번째 좌석줄은 기존 상대 순서를 유지하되, 문은주-조성임이 마지막에 붙도록 한다.
+  const middleM=Mwork.filter(x=>x[0]!=='문은주'&&x[0]!=='조성임');
+  if(munEunju)middleM.push(munEunju);
+  if(joSeongim)middleM.push(joSeongim);
+
+  const L=[Array(8).fill(null),Array(8).fill(null),Array(8).fill(null),Array(8).fill(null)];
+  const putSeq=(row,items,start=0)=>{let k=start;for(const it of items){while(k<8&&L[row][k])k++;if(k>=8)break;L[row][k++]=[...it];}return k};
+
+  // 1열: 소프라노 최대 8명
+  const s1=Swork.splice(0,Math.min(8,Swork.length)); putSeq(0,s1);
+  // 2열: 가장 멀리 가는 메조 2명을 통로 쪽에, 나머지 자리는 소프라노
+  let k2=putSeq(1,earlyM,0); putSeq(1,Swork.splice(0,8-k2),k2);
+  // 3열: 나머지 메조. 문은주-조성임은 가능한 한 안쪽 끝에 붙인다.
+  const m3=middleM.splice(0,8); putSeq(2,m3,0);
+  // 4열: 이정옥을 통로 쪽 첫 자리, 그 뒤로 테너
+  let k4=0;if(leeJeongOk){L[3][0]=[...leeJeongOk];k4=1}
+  const tForLeft=Twork.splice(0,Math.max(0,8-k4)); putSeq(3,tForLeft,k4);
+
+  // 예상보다 인원이 달라져 남은 S/M은 먼저 빈 좌석을 채우되, 조성임은 이미 지정 위치가 있으면 그대로 둔다.
+  const leftovers=[...Swork,...middleM];
+  for(const it of leftovers){
+    let placed=false;
+    for(let r=0;r<4&&!placed;r++)for(let c=0;c<8;c++)if(!L[r][c]){L[r][c]=[...it];placed=true;break}
+  }
+  // 왼쪽 32석을 넘는 경우에는 테너를 오른쪽 블록 보조 인원으로 넘긴다.
+  const overflowT=Twork;
+
+  // 오른쪽 1,2열은 알토 우선, 남는 자리는 베이스 및 넘친 테너가 채운다.
   const r1=Array(8).fill(null), r2=Array(8).fill(null), r3=Array(7).fill(null);
-  let ai=0, bi=0;
+  let ai=0;
   for(let i=0;i<8&&ai<A.length;i++)r1[i]=[...A[ai++]];
   for(let i=0;i<8&&ai<A.length;i++)r2[i]=[...A[ai++]];
-  for(let i=0;i<8&&bi<B.length;i++)if(!r1[i])r1[i]=[...B[bi++]];
-  for(let i=0;i<8&&bi<B.length;i++)if(!r2[i])r2[i]=[...B[bi++]];
-  // 남은 B는 목사님과 간격을 두고 오른쪽 끝부터 앉힌다.
-  const restB=B.slice(bi);
-  const start=Math.max(0,7-restB.length);
-  restB.slice(-7).forEach((it,i)=>r3[start+i]=[...it]);
+  const rightFill=[...B.map(x=>[...x]),...overflowT.map(x=>[...x])];
+  let fi=0;
+  for(let i=0;i<8&&fi<rightFill.length;i++)if(!r1[i])r1[i]=rightFill[fi++];
+  for(let i=0;i<8&&fi<rightFill.length;i++)if(!r2[i])r2[i]=rightFill[fi++];
+  const rest=rightFill.slice(fi);
+  const start=Math.max(0,7-rest.length);
+  rest.slice(-7).forEach((it,i)=>r3[start+i]=[...it]);
 
   return {l1:L[0],l2:L[1],l3:L[2],l4:L[3],r1,r2,r3};
 }
