@@ -213,29 +213,71 @@ function renderGroup(arr,x0,y,lane=''){let s='';arr.forEach((it,i)=>s+=nameCard(
 function bench(x,y,w,h=88){return svgEl('rect',{x,y,width:w,height:h,rx:8,fill:'#f7f2e9',stroke:'#9b8f7d','stroke-width':2})}
 function seatGrid(x,y,count=5,h=88){let s='';for(let i=0;i<count;i++)s+=svgEl('rect',{x:x+i*46,y,width:46,height:h,fill:'none',stroke:'#d8d0c4','stroke-width':1});return s}
 
+function practiceActiveRecords(){
+  return rosterRecords.filter(r=>r.status==='재적' && r.name && r.part && Number(r.practiceRow)>=1 && Number(r.practiceRow)<=4 && Number(r.practicePos)>=1);
+}
+function practiceSlotMap(){
+  const map={1:{},2:{},3:{},4:{}}, conflicts=[];
+  for(const r of practiceActiveRecords()){
+    const row=Number(r.practiceRow), pos=Number(r.practicePos);
+    if(map[row][pos]) conflicts.push(`${row}열 ${pos}번: ${map[row][pos][0]} / ${r.name}`);
+    else map[row][pos]=[r.name,r.part];
+  }
+  return {map,conflicts};
+}
+function renderPracticeSeat(slotMap,pos,x,y){
+  const it=slotMap[pos];
+  if(!it || absent.has(it[0])) return '';
+  return nameCard(it[0],it[1],x,y,44,82);
+}
+function practiceBenchByPositions(slotMap,positions,x,y){
+  const count=positions.length, pad=8, w=count*46+16;
+  let s=bench(x,y-3,w,88)+seatGrid(x+pad,y-3,count,88);
+  positions.forEach((pos,i)=>{s+=renderPracticeSeat(slotMap,pos,x+pad+i*46,y)});
+  return s;
+}
 function makePractice(){
-  // 3열 x 4줄의 실제 연습실 장의자. 조성임 님은 3줄 오른쪽의 별도 보조 의자.
-  const sizes={1:[5,5,4],2:[5,5,4],3:[3,5,5],4:[4,3,4]};
-  const colX=[72,370,668], benchW=5*46+16, pad=8;
-  let s=`<svg id="practice" viewBox="0 0 1024 520" xmlns="http://www.w3.org/2000/svg">${header('연습실 좌석 배치')}${frame()}`;
+  /*
+    새 연습실 배치: 세 개의 긴 장의자 열 + 일부 보조의자.
+    구글시트의 연습실_순서는 단순 정렬값이 아니라 '실제 좌석 번호'로 사용한다.
+    따라서 중간 번호가 비면 그 자리는 비워 두며, 번호를 압축하지 않는다.
+    좌석번호는 오른쪽 끝에서 1번으로 시작해 왼쪽으로 증가한다.
+  */
+  const {map,conflicts}=practiceSlotMap();
+  const leftX=60, centerX=365, rightX=670;
+  let s=`<svg id="practice" viewBox="0 0 1024 535" xmlns="http://www.w3.org/2000/svg">${header('연습실 좌석 배치')}${frame()}`;
+
   for(let row=1;row<=4;row++){
-    const y=78+(row-1)*110;
-    let base=(practiceRowsBase[row]||[]).map(x=>[...x]);
-    if(row===3)base=base.filter(x=>x[0]!=='조성임');
-    let k=0;
-    for(let c=0;c<3;c++){
-      const bx=colX[c]; s+=bench(bx,y-3,benchW,88)+seatGrid(bx+pad,y-3,5,88);
-      const n=sizes[row][c];
-      for(let j=0;j<n&&k<base.length;j++,k++){
-        const it=base[k]; if(!absent.has(it[0]))s+=nameCard(it[0],it[1],bx+pad+j*46,y,44,82);
-      }
+    const y=78+(row-1)*110, slots=map[row]||{};
+    if(row===1){
+      // 왼쪽 14~11 / 가운데 10~6 / 오른쪽 5~1
+      s+=practiceBenchByPositions(slots,[14,13,12,11],leftX,y);
+      s+=practiceBenchByPositions(slots,[10,9,8,7,6],centerX,y);
+      s+=practiceBenchByPositions(slots,[5,4,3,2,1],rightX,y);
+    }else if(row===2){
+      // 왼쪽 13~10 / 가운데 9~6 / 오른쪽 5~1
+      s+=practiceBenchByPositions(slots,[13,12,11,10],leftX,y);
+      s+=practiceBenchByPositions(slots,[9,8,7,6],centerX,y);
+      s+=practiceBenchByPositions(slots,[5,4,3,2,1],rightX,y);
+    }else if(row===3){
+      // 14번은 왼쪽 보조의자 / 왼쪽 13~10 / 가운데 9~5 / 오른쪽 4~1
+      const hx=8;
+      s+=bench(hx,y-3,60,88)+seatGrid(hx+8,y-3,1,88)+renderPracticeSeat(slots,14,hx+8,y);
+      s+=practiceBenchByPositions(slots,[13,12,11,10],leftX+12,y);
+      s+=practiceBenchByPositions(slots,[9,8,7,6,5],centerX,y);
+      s+=practiceBenchByPositions(slots,[4,3,2,1],rightX+46,y);
+    }else{
+      // 왼쪽 13~10 / 가운데 9~6 / 5번 보조의자 / 오른쪽 4~1
+      s+=practiceBenchByPositions(slots,[13,12,11,10],leftX,y);
+      s+=practiceBenchByPositions(slots,[9,8,7,6],centerX,y);
+      const hx=610;
+      s+=bench(hx,y-3,60,88)+seatGrid(hx+8,y-3,1,88)+renderPracticeSeat(slots,5,hx+8,y);
+      s+=practiceBenchByPositions(slots,[4,3,2,1],rightX+46,y);
     }
-    if(row===3){
-      const helper=(practiceRowsBase[3]||[]).find(x=>x[0]==='조성임');
-      if(helper&&!absent.has('조성임')){
-        const hx=932; s+=svgEl('rect',{x:hx-4,y:y-3,width:52,height:88,rx:8,fill:'#f7f2e9',stroke:'#9b8f7d','stroke-width':2,'stroke-dasharray':'4 3'});s+=nameCard(helper[0],helper[1],hx,y,44,82);
-      }
-    }
+  }
+  if(conflicts.length){
+    const msg='시트 좌석번호 중복: '+conflicts.join(' · ');
+    s+=svgEl('text',{x:18,y:526,'font-size':12,fill:'#b42318','font-weight':'700','font-family':'Arial, Noto Sans KR, sans-serif'},esc(msg));
   }
   return s+'</svg>';
 }
